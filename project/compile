@@ -1,5 +1,5 @@
 #!/bin/bash
 
 echo "Compile your project here"
-cd netsec-acme
+cd project/netsec-acme
 mvn package

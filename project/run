@@ -4,5 +4,5 @@ echo "Changing to ${DIRECTORY}"
 cd  "$DIRECTORY" || exit 1
 
 echo "Run your project here."
-cd netsec-acme
+cd project/netsec-acme
 java -cp target/lib/*;target/netsec-acme-0.0.1-SNAPSHOT.jar elianzuoni.netsec.acme.app.App
