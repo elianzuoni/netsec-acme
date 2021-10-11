@@ -10,7 +10,7 @@ import com.sun.net.httpserver.HttpServer;
 public class Http01ChallengeServer {
 	
 	private HttpServer httpServer;
-	private Logger logger = Logger.getLogger("http01.Http01ChallengeServer");
+	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.http01.Http01ChallengeServer");
 
 	public Http01ChallengeServer(int tcpPort, String rootDir) throws IOException {
 		super();

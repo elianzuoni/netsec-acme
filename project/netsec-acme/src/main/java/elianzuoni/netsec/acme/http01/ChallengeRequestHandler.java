@@ -13,7 +13,7 @@ import com.sun.net.httpserver.HttpHandler;
 class ChallengeRequestHandler implements HttpHandler {
 	
 	private String rootDir;
-	private Logger logger = Logger.getLogger("http01.ChallengeHandler");
+	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.http01.ChallengeHandler");
 
 	ChallengeRequestHandler(String rootDir) {
 		super();
