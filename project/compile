@@ -1,5 +1,7 @@
 #!/bin/bash
 
 echo "Compile your project here"
-cd project/netsec-acme
+cd project/
+sudo keytool -import -alias pebble -keystore $JAVA_HOME/jre/lib/security/cacerts -noprompt -storepass changeit -file pebble.minica.pem
+cd netsec-acme/
 mvn package
