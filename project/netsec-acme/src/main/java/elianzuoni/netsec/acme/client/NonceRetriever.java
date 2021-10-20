@@ -40,10 +40,10 @@ class NonceRetriever {
 		conn.connect();
 
 		// Check the response code
-		AcmeClient.checkResponseCode(conn, logger, HttpURLConnection.HTTP_OK);
+		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_OK);
 		
 		// Get the next nonce
-		nextNonce = AcmeClient.getRequiredHeader(conn, "Replay-Nonce", logger);
+		nextNonce = HttpUtils.getRequiredHeader(conn, "Replay-Nonce");
 		logger.fine("Next nonce: " + nextNonce);
 		
 		return;

@@ -45,7 +45,7 @@ class DirectoryRetriever {
 		InputStream respStream = conn.getInputStream();
 
 		// Check the response code
-		AcmeClient.checkResponseCode(conn, logger, HttpURLConnection.HTTP_OK);
+		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_OK);
 		
 		// Create a JSON object out of the payload
 		logger.finer("Parsing into JSON object");

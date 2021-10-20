@@ -8,9 +8,11 @@ import java.net.MalformedURLException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SignatureException;
+import java.security.spec.ECGenParameterSpec;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -20,6 +22,11 @@ import javax.json.JsonObject;
 import javax.net.ssl.HttpsURLConnection;
 
 public class AcmeClient {
+
+	private static final String EC_CURVE_NAME = "P-256";
+	private static final String EC_SIGN_ALGO_ACME_NAME = "ES256";
+	private static final String EC_SIGN_ALGO_BC_NAME = "SHA256withPLAIN-ECDSA";
+	private KeyPair keypair;
 	
 	private DirectoryRetriever directoryRetriever;
 	private String directoryUrl;
@@ -30,13 +37,18 @@ public class AcmeClient {
 	
 	private AccountCreator accountCreator;
 	private String accountUrl;
-	private KeyPair keypair;
 	
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AcmeClient");
 
-	public AcmeClient(String directoryUrl) {
+	public AcmeClient(String directoryUrl) throws NoSuchAlgorithmException, NoSuchProviderException, 
+													InvalidAlgorithmParameterException {
 		super();
 		this.directoryUrl = directoryUrl;
+		
+		// Generate the keypair
+		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", "BC");
+		keyGen.initialize(new ECGenParameterSpec(EC_CURVE_NAME));
+		keypair = keyGen.generateKeyPair();
 	}
 	
 	/**
@@ -86,97 +98,18 @@ public class AcmeClient {
 		
 		// Create the account
 		accountCreator = new AccountCreator(directory.getString("newAccount"), nextNonce);
-		accountCreator.setCrv("P-256");
-		accountCreator.setSignAlgoAcmeName("ES256");
-		accountCreator.setSignAlgoBCName("SHA256withPLAIN-ECDSA");
+		accountCreator.setKeypair(keypair);
+		accountCreator.setCrv(EC_CURVE_NAME);
+		accountCreator.setSignAlgoAcmeName(EC_SIGN_ALGO_ACME_NAME);
+		accountCreator.setSignAlgoBCName(EC_SIGN_ALGO_BC_NAME);
 		accountCreator.createAccount();
 		
 		accountUrl = accountCreator.getAccountUrl();
-		keypair = accountCreator.getKeypair();
 		nextNonce = accountCreator.getNextNonce();
 		
 		logger.info("Account created, located at " + accountUrl);
 		logger.info("Account created, public key:\n" + keypair.getPublic());
 		
 		return;
-	}
-	
-	/**
-	 * Checks whether a non-passing response code was returned.
-	 * In case not, the whole response is dumped and an exception is thrown.
-	 */
-	static void checkResponseCode(HttpsURLConnection conn, Logger logger, int...passingCodes) 
-			throws IOException {
-		// Check if the response code is good
-		for(int code : passingCodes) {
-			if(code == conn.getResponseCode()) {
-				return;
-			}
-		}
-		
-		// Log the error
-		String errorString = "Did not receive good response code: " + 
-								conn.getResponseCode() + " " + conn.getResponseMessage();
-		logger.severe(errorString + "\n" +
-					  "Response headers:\n" + getResponseHeaders(conn) + "\n" +
-					  "Response payload:\n" + getResponsePayload(conn) + "\n");
-		
-		throw new IOException(errorString);
-	}
-	
-	/**
-	 * Extracts a required header from the response, throwing an exception
-	 * if it is absent.
-	 */
-	static String getRequiredHeader(HttpsURLConnection conn, String key, Logger logger) 
-									throws IOException {
-		String value = conn.getHeaderField(key);
-		
-		if(value != null) {
-			return value;
-		}
-		
-		// Log the error
-		String errorString = "No " + key + " field in the response";
-		logger.severe(errorString + "\n" +
-					  "Response headers:\n" + getResponseHeaders(conn) + "\n" +
-					  "Response payload:\n" + getResponsePayload(conn) + "\n");
-		
-		throw new IOException(errorString);
-	}
-	
-	/**
-	 * Extracts the payload from an HTTP response
-	 */
-	private static String getResponsePayload(HttpsURLConnection conn) throws IOException {
-		InputStream respStream;
-		
-		try {
-			respStream = conn.getInputStream();
-		}
-		catch(Exception e) {}
-		finally {
-			respStream = conn.getErrorStream();
-		}
-		
-		String respPayload = new BufferedReader(new InputStreamReader(respStream)).
-									lines().
-									collect(Collectors.joining("\n"));
-		
-		return respPayload;
-	}
-
-	/**
-	 * Extracts the headers from an HTTP response
-	 */
-	private static String getResponseHeaders(HttpsURLConnection conn) {
-		String respHeaders = "";
-		
-		// Accumulate the headers
-		for(Map.Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
-			respHeaders += entry.getKey() + ": " + entry.getValue() + "\n";
-		}
-		
-		return respHeaders;
 	}
 }

@@ -44,10 +44,6 @@ class AccountCreator {
 		this.nonce = nonce;
 	}
 
-	KeyPair getKeypair() {
-		return keypair;
-	}
-
 	String getAccountUrl() {
 		return accountUrl;
 	}
@@ -56,6 +52,10 @@ class AccountCreator {
 		return nextNonce;
 	}
 	
+	void setKeypair(KeyPair keypair) {
+		this.keypair = keypair;
+	}
+
 	void setCrv(String crv) {
 		this.crv = crv;
 	}
@@ -76,12 +76,7 @@ class AccountCreator {
 	 */
 	void createAccount() throws IOException, InvalidKeyException, SignatureException, 
 								NoSuchAlgorithmException, NoSuchProviderException, 
-								InvalidAlgorithmParameterException {
-		// Generate the keypair
-		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", "BC");
-		keyGen.initialize(new ECGenParameterSpec(crv));
-		
-		keypair = keyGen.generateKeyPair();
+								InvalidAlgorithmParameterException {		
 		// Connect to the newAccount endpoint of the ACME server
 		logger.fine("Connecting to newAccount endpoint at URL " + url);
 		HttpsURLConnection conn = (HttpsURLConnection) new URL(url).openConnection();
@@ -101,14 +96,14 @@ class AccountCreator {
 		conn.getOutputStream().write(reqBody.toString().getBytes());
 
 		// Check the response code
-		AcmeClient.checkResponseCode(conn, logger, HttpURLConnection.HTTP_CREATED);
+		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_CREATED);
 		
 		// Get the account URL
-		accountUrl = AcmeClient.getRequiredHeader(conn, "Location", logger);
+		accountUrl = HttpUtils.getRequiredHeader(conn, "Location");
 		logger.fine("Account URL: " + accountUrl);
 		
 		// Get the next nonce
-		nextNonce = AcmeClient.getRequiredHeader(conn, "Replay-Nonce", logger);
+		nextNonce = HttpUtils.getRequiredHeader(conn, "Replay-Nonce");
 		logger.fine("Next nonce: " + nextNonce);
 		
 		return;
