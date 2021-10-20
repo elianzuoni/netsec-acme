@@ -2,6 +2,7 @@ package elianzuoni.netsec.acme.client;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Logger;
@@ -21,33 +22,32 @@ class DirectoryRetriever {
 		this.url = url;
 	}
 
-	/**
-	 * Lazily retrieves the directory JSON object from the URL specified
-	 * in the constructor.
-	 */
-	JsonObject getDirectory() throws MalformedURLException, IOException {
-		if(directory == null){
-			logger.info("Retrieving directory at URL " + url);
-			retrieveDirectory();
-		}
-		
-		logger.fine("Directory:\n" + directory);
+	JsonObject getDirectory() {
 		return directory;
 	}
 
 	/**
 	 * Retrieves the directory JSON object via a GET request over HTTPS.
 	 */
-	private void retrieveDirectory() throws MalformedURLException, IOException {
+	void retrieveDirectory() throws MalformedURLException, IOException {
 		// Connect to the directory endpoint of the ACME server
 		logger.fine("Connecting to directory endpoint at URL " + url);
 		HttpsURLConnection conn = (HttpsURLConnection) new URL(url).openConnection();
 		
+		// Set the method to GET
+		conn.setRequestMethod("GET");
+		
+		// Fire the request
+		conn.connect();
+		
 		// This stream will carry the GET response
 		logger.finer("Getting InputStream");
 		InputStream respStream = conn.getInputStream();
+
+		// Check the response code
+		AcmeClient.checkResponseCode(conn, logger, HttpURLConnection.HTTP_OK);
 		
-		// Create a JSON object out of it
+		// Create a JSON object out of the payload
 		logger.finer("Parsing into JSON object");
 		directory = Json.createReader(respStream).readObject();
 		

@@ -2,12 +2,23 @@ package elianzuoni.netsec.acme.app;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Security;
+import java.security.SignatureException;
+import java.security.spec.ECGenParameterSpec;
 import java.util.Locale;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import elianzuoni.netsec.acme.client.AcmeClient;
 import elianzuoni.netsec.acme.http01.Http01ChallengeServer;
@@ -24,8 +35,12 @@ public class App {
 	private static Semaphore shutdownSemaphore = new Semaphore(0);
 	private static Logger logger = Logger.getLogger("elianzuoni.netsec.acme.app.App");
 
-	public static void main(String[] args) throws SecurityException, IOException, InterruptedException {
+	public static void main(String[] args) throws SecurityException, IOException, InterruptedException, 
+												NoSuchAlgorithmException, NoSuchProviderException, 
+												InvalidAlgorithmParameterException, InvalidKeyException, 
+												SignatureException {
 		setLoggerProperties();
+		Security.addProvider(new BouncyCastleProvider());
 		
 		// Set up all servers
 		setUpHttp01();
@@ -33,6 +48,11 @@ public class App {
 		
 		// Set up client
 		acmeClient = new AcmeClient(ACME_DIR_URL);
+		
+		// Operate client
+		acmeClient.retrieveDirectory();
+		acmeClient.retrieveNonce();
+		acmeClient.createAccount();
 		
 		// Start all servers
 		http01ChallengeServer.start(serversExecutor);

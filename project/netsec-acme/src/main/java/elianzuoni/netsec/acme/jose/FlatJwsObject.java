@@ -1,5 +1,6 @@
-package elianzuoni.netsec.acme.jws;
+package elianzuoni.netsec.acme.jose;
 
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -7,59 +8,64 @@ import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Base64;
+import java.util.Base64.Encoder;
 import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
 public class FlatJwsObject {
 
-	private JsonObject header;
-	private JsonObject payload;
+	private JsonObjectBuilder headerBuilder;
+	private JsonObjectBuilder payloadBuilder;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.jws.FlatJwsObject");
 	
 	public FlatJwsObject() {
 		super();
-		header = Json.createObjectBuilder().build();
-		payload = Json.createObjectBuilder().build();
+		headerBuilder = Json.createObjectBuilder();
+		payloadBuilder = Json.createObjectBuilder();
 	}
 	
-	public JsonObject finalise(PrivateKey secretKey) 
+	public JsonObject finalise(PrivateKey secretKey, String signAlgo) 
 					throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-		// Encode header and payload as base64url
+		Encoder base64url = Base64.getUrlEncoder().withoutPadding();
+		
+		// Encode header and payload as base64url without padding
 		logger.finer("Encoding header and payload");
-		String headerString = header.toString();
-		String headerEncoded = Base64.getUrlEncoder().encodeToString(headerString.getBytes());
-		String payloadString = payload.toString();
-		String payloadEncoded = Base64.getUrlEncoder().encodeToString(payloadString.getBytes());
+		String headerString = headerBuilder.build().toString();
+		String headerEncoded = base64url.encodeToString(headerString.getBytes(StandardCharsets.UTF_8));
+		String payloadString = payloadBuilder.build().toString();
+		String payloadEncoded = base64url.encodeToString(payloadString.getBytes(StandardCharsets.UTF_8));
 		String signingInput = headerEncoded + "." + payloadEncoded;
 		
 		// Sign
-		logger.fine("Signing");
-		Signature signer = Signature.getInstance(secretKey.getAlgorithm());
+		logger.fine("Signing input: " + signingInput);
+		Signature signer = Signature.getInstance(signAlgo);
 		signer.initSign(secretKey, new SecureRandom());
 		signer.update(signingInput.getBytes());
 		byte signature[] = signer.sign();
-		String signatureEncoded = Base64.getUrlEncoder().encodeToString(signature);
+		logger.fine("Signature is " + signature.length + " bytes long: " + signature.toString());
+		String signatureEncoded = base64url.encodeToString(signature);
 		
 		// Build JWS object
-		logger.finer("Building JWS object");
 		JsonObject jws = Json.createObjectBuilder().
 								add("protected", headerEncoded).
 								add("payload", payloadEncoded).
 								add("signature", signatureEncoded).
 								build();
+		logger.finer("Built JWS object:\n" + jws);
 		
 		return jws;
 	}
 
 	public void addHeader(String key, JsonValue value) {
-		header.put(key, value);
+		headerBuilder.add(key, value);
 	}
 	
 	public void addPayloadEntry(String key, JsonValue value) {
-		payload.put(key, value);
+		payloadBuilder.add(key, value);
 	}
 	
 	public void addAlgHeader(String alg) {
@@ -73,4 +79,13 @@ public class FlatJwsObject {
 	public void addUrlHeader(String url) {
 		addHeader("url", Json.createValue(url));
 	}
+	
+	public void addJwkHeader(JsonObject jwk) {
+		addHeader("jwk", jwk);
+	}
+	
+	public void addKidHeader(String kid) {
+		addHeader("kid", Json.createValue(kid));
+	}
+	
 }
