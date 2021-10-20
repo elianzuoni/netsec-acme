@@ -11,6 +11,8 @@ import java.security.NoSuchProviderException;
 import java.security.Security;
 import java.security.SignatureException;
 import java.security.spec.ECGenParameterSpec;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.Locale;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -47,12 +49,13 @@ public class App {
 		logger.info("All servers set up");
 		
 		// Set up client
-		acmeClient = new AcmeClient(ACME_DIR_URL);
+		acmeClient = new AcmeClient(ACME_DIR_URL, Arrays.asList("www.example.com"));
 		
 		// Operate client
 		acmeClient.retrieveDirectory();
 		acmeClient.retrieveNonce();
 		acmeClient.createAccount();
+		acmeClient.placeOrder();
 		
 		// Start all servers
 		http01ChallengeServer.start(serversExecutor);

@@ -9,53 +9,41 @@ import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SignatureException;
-import java.security.interfaces.ECPublicKey;
+import java.util.Collection;
 import java.util.logging.Logger;
 
+import javax.json.Json;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
-import javax.json.JsonValue;
 import javax.net.ssl.HttpsURLConnection;
 
 import elianzuoni.netsec.acme.jose.FlatJwsObject;
-import elianzuoni.netsec.acme.jose.JwkObject;
 
-class AccountCreator {
+class OrderPlacer {
 	
 	private String url;
 	private String nonce;
-	private String crv;
+	private Collection<String> domains;
 	private String signAlgoBCName;
 	private String signAlgoAcmeName;
 	private KeyPair keypair;
 	private String accountUrl;
+	private JsonObject order;
 	private String nextNonce;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AccountCreator");
 	
 	/**
-	 * @param url the server's endpoint for creating accounts
+	 * @param url the server's endpoint for placing orders
 	 * @param nonce the last Replay-Nonce value received
 	 */
-	AccountCreator(String url, String nonce) throws NoSuchAlgorithmException, 
-					NoSuchProviderException, InvalidAlgorithmParameterException {
+	OrderPlacer(String url, String nonce) {
 		super();
 		this.url = url;
 		this.nonce = nonce;
 	}
 
-	String getAccountUrl() {
-		return accountUrl;
-	}
-
-	String getNextNonce() {
-		return nextNonce;
-	}
-	
-	void setKeypair(KeyPair keypair) {
-		this.keypair = keypair;
-	}
-
-	void setCrv(String crv) {
-		this.crv = crv;
+	void setDomains(Collection<String> domains) {
+		this.domains = domains;
 	}
 
 	void setSignAlgoBCName(String signAlgoBCName) {
@@ -66,17 +54,31 @@ class AccountCreator {
 		this.signAlgoAcmeName = signAlgoAcmeName;
 	}
 
+	void setKeypair(KeyPair keypair) {
+		this.keypair = keypair;
+	}
+
+	void setAccountUrl(String accountUrl) {
+		this.accountUrl = accountUrl;
+	}
+
+	JsonObject getOrder() {
+		return order;
+	}
+
+	String getNextNonce() {
+		return nextNonce;
+	}
+
 	/**
 	 * Creates a new account by sending a POST request to the specified endpoint on
 	 * the server.
-	 * @throws NoSuchProviderException 
-	 * @throws InvalidAlgorithmParameterException 
 	 */
-	void createAccount() throws IOException, InvalidKeyException, SignatureException, 
+	void placeOrder() throws IOException, InvalidKeyException, SignatureException, 
 								NoSuchAlgorithmException, NoSuchProviderException, 
 								InvalidAlgorithmParameterException {		
-		// Connect to the newAccount endpoint of the ACME server
-		logger.fine("Connecting to newAccount endpoint at URL " + url);
+		// Connect to the newOrder endpoint of the ACME server
+		logger.fine("Connecting to newOrder endpoint at URL " + url);
 		HttpsURLConnection conn = (HttpsURLConnection) new URL(url).openConnection();
 		
 		// Set the request to POST and set its headers
@@ -96,9 +98,9 @@ class AccountCreator {
 		// Check the response code
 		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_CREATED);
 		
-		// Get the account URL
-		accountUrl = HttpUtils.getRequiredHeader(conn, "Location");
-		logger.fine("Account URL: " + accountUrl);
+		// Get the order object
+		order = Json.createReader(conn.getInputStream()).readObject();
+		logger.fine("Order object: " + order);
 		
 		// Get the next nonce
 		nextNonce = HttpUtils.getRequiredHeader(conn, "Replay-Nonce");
@@ -118,10 +120,17 @@ class AccountCreator {
 		body.addAlgHeader(signAlgoAcmeName);
 		body.addNonceHeader(nonce);
 		body.addUrlHeader(url);
-		body.addJwkHeader(JwkObject.encodeEcPublicKey((ECPublicKey)keypair.getPublic(), crv));
+		body.addKidHeader(accountUrl);
 		
 		// Build JWS payload
-		body.addPayloadEntry("termsOfServiceAgreed", JsonValue.TRUE);	// Not really necessary
+		JsonArrayBuilder identifiersBuilder = Json.createArrayBuilder();
+		for(String domain : domains) {
+			// Add domain to identifiers array
+			identifiersBuilder.add(Json.createObjectBuilder().
+										add("type", "dns").
+										add("value", domain));
+		}
+		body.addPayloadEntry("identifiers", identifiersBuilder.build());
 		
 		return body.finalise(keypair.getPrivate(), signAlgoBCName);
 	}

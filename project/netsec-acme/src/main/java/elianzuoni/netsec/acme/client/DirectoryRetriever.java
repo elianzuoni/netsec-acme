@@ -39,17 +39,13 @@ class DirectoryRetriever {
 		
 		// Fire the request
 		conn.connect();
-		
-		// This stream will carry the GET response
-		logger.finer("Getting InputStream");
-		InputStream respStream = conn.getInputStream();
 
 		// Check the response code
 		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_OK);
 		
 		// Create a JSON object out of the payload
 		logger.finer("Parsing into JSON object");
-		directory = Json.createReader(respStream).readObject();
+		directory = Json.createReader(conn.getInputStream()).readObject();
 		
 		return;
 	}
