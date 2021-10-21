@@ -10,42 +10,38 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.logging.Logger;
 
 import javax.json.Json;
-import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.net.ssl.HttpsURLConnection;
 
 import elianzuoni.netsec.acme.jose.FlatJwsObject;
 
-class OrderPlacer {
+class AuthorisationsRetriever {
 	
-	private String url;
+	private Collection<String> urls;
 	private String nonce;
-	private Collection<String> domains;
 	private String signAlgoBCName;
 	private String signAlgoAcmeName;
 	private KeyPair keypair;
 	private String accountUrl;
-	private JsonObject order;
+	private Collection<JsonObject> authorisations;
 	private String nextNonce;
-	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.OrderPlacer");
+	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AuthorisationsRetriever");
 	
 	/**
 	 * @param url the server's endpoint for placing orders
 	 * @param nonce the last Replay-Nonce value received
 	 */
-	OrderPlacer(String url, String nonce) {
+	AuthorisationsRetriever(Collection<String> urls, String nonce) {
 		super();
-		this.url = url;
+		this.urls = urls;
 		this.nonce = nonce;
+		this.authorisations = new LinkedList<JsonObject>();
 	}
 
-	void setDomains(Collection<String> domains) {
-		this.domains = domains;
-	}
-	
 	void setCrypto(KeyPair keypair, String signAlgoBCName, String signAlgoAcmeName) {
 		this.keypair = keypair;
 		this.signAlgoBCName = signAlgoBCName;
@@ -56,8 +52,8 @@ class OrderPlacer {
 		this.accountUrl = accountUrl;
 	}
 
-	JsonObject getOrder() {
-		return order;
+	Collection<JsonObject> getAuthorisations() {
+		return authorisations;
 	}
 
 	String getNextNonce() {
@@ -65,14 +61,31 @@ class OrderPlacer {
 	}
 
 	/**
-	 * Palces a new order by sending a POST request to the specified endpoint on
-	 * the server.
+	 * Retrieves all authorisation objects by sending a POST-as-GET request to the specified 
+	 * endpoints on the server.
 	 */
-	void placeOrder() throws IOException, InvalidKeyException, SignatureException, 
-								NoSuchAlgorithmException, NoSuchProviderException, 
-								InvalidAlgorithmParameterException {		
-		// Connect to the newOrder endpoint of the ACME server
-		logger.fine("Connecting to newOrder endpoint at URL " + url);
+	void retrieveAuthorisations() throws InvalidKeyException, SignatureException,
+											NoSuchAlgorithmException, NoSuchProviderException, 
+											InvalidAlgorithmParameterException, IOException {
+		// Populate the map
+		for(String url : urls) {
+			authorisations.add(retrieveAuthorisation(url));
+			// Shift back the nonce for the next request
+			nonce = nextNonce;
+		}
+		
+		return;
+	}
+	
+	/**
+	 * Retrieves the authorisation located at the specified URL
+	 */
+	private JsonObject retrieveAuthorisation(String url) throws IOException, InvalidKeyException, 
+														SignatureException, NoSuchAlgorithmException, 
+														NoSuchProviderException, 
+														InvalidAlgorithmParameterException {		
+		// Connect to the authorisation endpoint of the ACME server
+		logger.fine("Connecting to authorisation endpoint at URL " + url);
 		HttpsURLConnection conn = (HttpsURLConnection) new URL(url).openConnection();
 		
 		// Set the request to POST and set its headers
@@ -81,7 +94,7 @@ class OrderPlacer {
 		conn.addRequestProperty("Content-Type", "application/jose+json");
 		
 		// Build the request body
-		JsonObject reqBody = buildReqBody();
+		JsonObject reqBody = buildReqBody(url);
 		
 		// Fire the request
 		conn.connect();
@@ -90,24 +103,24 @@ class OrderPlacer {
 		conn.getOutputStream().write(reqBody.toString().getBytes());
 
 		// Check the response code
-		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_CREATED);
+		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_OK);
 		
-		// Get the order object
-		order = Json.createReader(conn.getInputStream()).readObject();
-		logger.fine("Order object: " + order);
+		// Get the authorisation object
+		JsonObject auth = Json.createReader(conn.getInputStream()).readObject();
+		logger.fine("Authorisation object: " + auth);
 		
 		// Get the next nonce
 		nextNonce = HttpUtils.getRequiredHeader(conn, "Replay-Nonce");
 		logger.fine("Next nonce: " + nextNonce);
 		
-		return;
+		return auth;
 	}
 
 	/**
 	 * Only builds the JWS body of the POST request
 	 */
-	private JsonObject buildReqBody() throws SignatureException, InvalidKeyException, 
-											NoSuchAlgorithmException {
+	private JsonObject buildReqBody(String url) throws SignatureException, InvalidKeyException, 
+														NoSuchAlgorithmException {
 		FlatJwsObject body = new FlatJwsObject();
 		
 		// Build JWS header
@@ -116,15 +129,8 @@ class OrderPlacer {
 		body.addUrlHeader(url);
 		body.addKidHeader(accountUrl);
 		
-		// Build JWS payload
-		JsonArrayBuilder identifiersBuilder = Json.createArrayBuilder();
-		for(String domain : domains) {
-			// Add domain to identifiers array
-			identifiersBuilder.add(Json.createObjectBuilder().
-										add("type", "dns").
-										add("value", domain));
-		}
-		body.addPayloadEntry("identifiers", identifiersBuilder.build());
+		// Set payload to empty string
+		body.setPostAsGet();
 		
 		return body.finalise(keypair.getPrivate(), signAlgoBCName);
 	}

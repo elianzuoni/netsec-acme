@@ -50,19 +50,10 @@ class AccountCreator {
 		return nextNonce;
 	}
 	
-	void setKeypair(KeyPair keypair) {
+	void setCrypto(KeyPair keypair, String crv, String signAlgoBCName, String signAlgoAcmeName) {
 		this.keypair = keypair;
-	}
-
-	void setCrv(String crv) {
 		this.crv = crv;
-	}
-
-	void setSignAlgoBCName(String signAlgoBCName) {
 		this.signAlgoBCName = signAlgoBCName;
-	}
-
-	void setSignAlgoAcmeName(String signAlgoAcmeName) {
 		this.signAlgoAcmeName = signAlgoAcmeName;
 	}
 

@@ -11,9 +11,12 @@ import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.logging.Logger;
 
 import javax.json.JsonObject;
+import javax.json.JsonString;
+import javax.json.JsonValue;
 
 public class AcmeClient {
 
@@ -36,6 +39,9 @@ public class AcmeClient {
 	private OrderPlacer orderPlacer;
 	private Collection<String> domains;
 	private JsonObject order;
+	// Authorisations retrieval
+	private AuthorisationsRetriever authorisationsRetriever;
+	private Collection<JsonObject> authorisations;
 	// Logger
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AcmeClient");
 
@@ -91,10 +97,7 @@ public class AcmeClient {
 										SignatureException, IOException {
 		// Create the account
 		accountCreator = new AccountCreator(directory.getString("newAccount"), nextNonce);
-		accountCreator.setKeypair(keypair);
-		accountCreator.setCrv(EC_CURVE_NAME);
-		accountCreator.setSignAlgoAcmeName(EC_SIGN_ALGO_ACME_NAME);
-		accountCreator.setSignAlgoBCName(EC_SIGN_ALGO_BC_NAME);
+		accountCreator.setCrypto(keypair, EC_CURVE_NAME, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
 		accountCreator.createAccount();
 		
 		accountUrl = accountCreator.getAccountUrl();
@@ -107,22 +110,14 @@ public class AcmeClient {
 	
 	/**
 	 * Places an order on the ACME server for the specified domains
-	 * @throws IOException 
-	 * @throws InvalidAlgorithmParameterException 
-	 * @throws NoSuchProviderException 
-	 * @throws NoSuchAlgorithmException 
-	 * @throws SignatureException 
-	 * @throws InvalidKeyException 
 	 */
 	public void placeOrder() throws InvalidKeyException, SignatureException, NoSuchAlgorithmException, 
 									NoSuchProviderException, InvalidAlgorithmParameterException, 
 									IOException {
 		// Place the order
 		orderPlacer = new OrderPlacer(directory.getString("newOrder"), nextNonce);
-		orderPlacer.setKeypair(keypair);
 		orderPlacer.setDomains(domains);
-		orderPlacer.setSignAlgoAcmeName(EC_SIGN_ALGO_ACME_NAME);
-		orderPlacer.setSignAlgoBCName(EC_SIGN_ALGO_BC_NAME);
+		orderPlacer.setCrypto(keypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
 		orderPlacer.setAccountUrl(accountUrl);
 		orderPlacer.placeOrder();
 		
@@ -130,6 +125,33 @@ public class AcmeClient {
 		nextNonce = orderPlacer.getNextNonce();
 		
 		logger.info("Order placed: " + order);
+		
+		return;
+	}
+	
+	/**
+	 * Retrieves all the authorisation objects from the URLs specified in the order object
+	 */
+	public void retrieveAuthorisations() throws InvalidKeyException, SignatureException, 
+												NoSuchAlgorithmException, NoSuchProviderException, 
+												InvalidAlgorithmParameterException, IOException {
+		// Get authorisation URLs
+		Collection<String> urls = new LinkedList<String>();
+		for(JsonValue auth : order.get("authorizations").asJsonArray()) {
+			String authUrl = ((JsonString)auth).getString();
+			urls.add(authUrl);
+		}
+		
+		// Retrieve authorisations
+		authorisationsRetriever = new AuthorisationsRetriever(urls, nextNonce);
+		authorisationsRetriever.setCrypto(keypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
+		authorisationsRetriever.setAccountUrl(accountUrl);
+		authorisationsRetriever.retrieveAuthorisations();
+		
+		authorisations = authorisationsRetriever.getAuthorisations();
+		nextNonce = authorisationsRetriever.getNextNonce();
+		
+		logger.info("Retrieved authorisations: " + authorisations);
 		
 		return;
 	}

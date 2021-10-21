@@ -20,12 +20,17 @@ public class FlatJwsObject {
 
 	private JsonObjectBuilder headerBuilder;
 	private JsonObjectBuilder payloadBuilder;
+	private boolean isPostAsGet;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.jws.FlatJwsObject");
 	
 	public FlatJwsObject() {
 		super();
 		headerBuilder = Json.createObjectBuilder();
 		payloadBuilder = Json.createObjectBuilder();
+	}
+	
+	public void setPostAsGet() {
+		isPostAsGet = true;
 	}
 	
 	public JsonObject finalise(PrivateKey secretKey, String signAlgo) 
@@ -36,8 +41,10 @@ public class FlatJwsObject {
 		logger.finer("Encoding header and payload");
 		String headerString = headerBuilder.build().toString();
 		String headerEncoded = base64url.encodeToString(headerString.getBytes(StandardCharsets.UTF_8));
-		String payloadString = payloadBuilder.build().toString();
+		// Check if the payload has to be the empty string
+		String payloadString = isPostAsGet ? "" : payloadBuilder.build().toString();
 		String payloadEncoded = base64url.encodeToString(payloadString.getBytes(StandardCharsets.UTF_8));
+		// Build the signing input
 		String signingInput = headerEncoded + "." + payloadEncoded;
 		
 		// Sign

@@ -56,6 +56,7 @@ public class App {
 		acmeClient.retrieveNonce();
 		acmeClient.createAccount();
 		acmeClient.placeOrder();
+		acmeClient.retrieveAuthorisations();
 		
 		// Start all servers
 		http01ChallengeServer.start(serversExecutor);
