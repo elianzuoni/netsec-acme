@@ -17,7 +17,7 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.net.ssl.HttpsURLConnection;
 
-import elianzuoni.netsec.acme.jose.FlatJwsObject;
+import elianzuoni.netsec.acme.jose.Jws;
 
 class OrderPlacer {
 	
@@ -108,7 +108,7 @@ class OrderPlacer {
 	 */
 	private JsonObject buildReqBody() throws SignatureException, InvalidKeyException, 
 											NoSuchAlgorithmException {
-		FlatJwsObject body = new FlatJwsObject();
+		Jws body = new Jws();
 		
 		// Build JWS header
 		body.addAlgHeader(signAlgoAcmeName);

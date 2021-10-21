@@ -17,7 +17,7 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.net.ssl.HttpsURLConnection;
 
-import elianzuoni.netsec.acme.jose.FlatJwsObject;
+import elianzuoni.netsec.acme.jose.Jws;
 
 class AuthorisationsRetriever {
 	
@@ -121,7 +121,7 @@ class AuthorisationsRetriever {
 	 */
 	private JsonObject buildReqBody(String url) throws SignatureException, InvalidKeyException, 
 														NoSuchAlgorithmException {
-		FlatJwsObject body = new FlatJwsObject();
+		Jws body = new Jws();
 		
 		// Build JWS header
 		body.addAlgHeader(signAlgoAcmeName);

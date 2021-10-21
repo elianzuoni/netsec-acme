@@ -16,8 +16,8 @@ import javax.json.JsonObject;
 import javax.json.JsonValue;
 import javax.net.ssl.HttpsURLConnection;
 
-import elianzuoni.netsec.acme.jose.FlatJwsObject;
-import elianzuoni.netsec.acme.jose.JwkObject;
+import elianzuoni.netsec.acme.jose.Jws;
+import elianzuoni.netsec.acme.jose.Jwk;
 
 class AccountCreator {
 	
@@ -103,13 +103,13 @@ class AccountCreator {
 	 */
 	private JsonObject buildReqBody() throws SignatureException, InvalidKeyException, 
 											NoSuchAlgorithmException {
-		FlatJwsObject body = new FlatJwsObject();
+		Jws body = new Jws();
 		
 		// Build JWS header
 		body.addAlgHeader(signAlgoAcmeName);
 		body.addNonceHeader(nonce);
 		body.addUrlHeader(url);
-		body.addJwkHeader(JwkObject.encodeEcPublicKey((ECPublicKey)keypair.getPublic(), crv));
+		body.addJwkHeader(Jwk.fromEcPublicKey((ECPublicKey)keypair.getPublic(), crv));
 		
 		// Build JWS payload
 		body.addPayloadEntry("termsOfServiceAgreed", JsonValue.TRUE);	// Not really necessary

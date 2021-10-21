@@ -24,7 +24,7 @@ public class AcmeClient {
 	private static final String EC_CURVE_NAME = "P-256";
 	private static final String EC_SIGN_ALGO_ACME_NAME = "ES256";
 	private static final String EC_SIGN_ALGO_BC_NAME = "SHA256withPLAIN-ECDSA";
-	private KeyPair keypair;
+	private KeyPair accountKeypair;
 	// Directory
 	private DirectoryRetriever directoryRetriever;
 	private String directoryUrl;
@@ -54,8 +54,8 @@ public class AcmeClient {
 		// Generate the keypair
 		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", "BC");
 		keyGen.initialize(new ECGenParameterSpec(EC_CURVE_NAME));
-		keypair = keyGen.generateKeyPair();
-		logger.info("Generated public key:\n" + keypair.getPublic());
+		accountKeypair = keyGen.generateKeyPair();
+		logger.info("Generated public key:\n" + accountKeypair.getPublic());
 	}
 	
 	/**
@@ -97,7 +97,8 @@ public class AcmeClient {
 										SignatureException, IOException {
 		// Create the account
 		accountCreator = new AccountCreator(directory.getString("newAccount"), nextNonce);
-		accountCreator.setCrypto(keypair, EC_CURVE_NAME, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
+		accountCreator.setCrypto(accountKeypair, EC_CURVE_NAME, EC_SIGN_ALGO_BC_NAME, 
+								EC_SIGN_ALGO_ACME_NAME);
 		accountCreator.createAccount();
 		
 		accountUrl = accountCreator.getAccountUrl();
@@ -117,7 +118,7 @@ public class AcmeClient {
 		// Place the order
 		orderPlacer = new OrderPlacer(directory.getString("newOrder"), nextNonce);
 		orderPlacer.setDomains(domains);
-		orderPlacer.setCrypto(keypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
+		orderPlacer.setCrypto(accountKeypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
 		orderPlacer.setAccountUrl(accountUrl);
 		orderPlacer.placeOrder();
 		
@@ -144,7 +145,7 @@ public class AcmeClient {
 		
 		// Retrieve authorisations
 		authorisationsRetriever = new AuthorisationsRetriever(urls, nextNonce);
-		authorisationsRetriever.setCrypto(keypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
+		authorisationsRetriever.setCrypto(accountKeypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
 		authorisationsRetriever.setAccountUrl(accountUrl);
 		authorisationsRetriever.retrieveAuthorisations();
 		

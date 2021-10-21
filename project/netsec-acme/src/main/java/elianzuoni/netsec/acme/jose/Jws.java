@@ -16,14 +16,14 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
-public class FlatJwsObject {
+public class Jws {
 
 	private JsonObjectBuilder headerBuilder;
 	private JsonObjectBuilder payloadBuilder;
 	private boolean isPostAsGet;
-	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.jws.FlatJwsObject");
+	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.jws.Jws");
 	
-	public FlatJwsObject() {
+	public Jws() {
 		super();
 		headerBuilder = Json.createObjectBuilder();
 		payloadBuilder = Json.createObjectBuilder();
@@ -46,6 +46,9 @@ public class FlatJwsObject {
 		String payloadEncoded = base64url.encodeToString(payloadString.getBytes(StandardCharsets.UTF_8));
 		// Build the signing input
 		String signingInput = headerEncoded + "." + payloadEncoded;
+		
+		logger.finer("Encoded header:\n" + headerString);
+		logger.finer("Encoded payload:\n" + payloadString);
 		
 		// Sign
 		logger.fine("Signing input: " + signingInput);
