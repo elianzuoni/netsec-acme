@@ -23,11 +23,11 @@ import java.util.logging.Logger;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import elianzuoni.netsec.acme.client.AcmeClient;
-import elianzuoni.netsec.acme.http01.Http01ChallengeServer;
+import elianzuoni.netsec.acme.http01.Http01Server;
 
 public class App {
 	
-	private static Http01ChallengeServer http01ChallengeServer;
+	private static Http01Server http01ChallengeServer;
 	private static final int HTTP01_PORT = 5002;
 	private static final String HTTP01_ROOT_DIR = "src/main/resources/http01/";
 	private static final int MAX_SERVERS_THREADS = 8;
@@ -48,8 +48,12 @@ public class App {
 		setUpHttp01();
 		logger.info("All servers set up");
 		
+		// Start all servers
+		http01ChallengeServer.start(serversExecutor);
+		logger.info("All servers started");
+		
 		// Set up client
-		acmeClient = new AcmeClient(ACME_DIR_URL, Arrays.asList("www.example.com"));
+		acmeClient = new AcmeClient(ACME_DIR_URL, Arrays.asList("localhost"));
 		
 		// Operate client
 		acmeClient.retrieveDirectory();
@@ -57,10 +61,8 @@ public class App {
 		acmeClient.createAccount();
 		acmeClient.placeOrder();
 		acmeClient.retrieveAuthorisations();
-		
-		// Start all servers
-		http01ChallengeServer.start(serversExecutor);
-		logger.info("All servers started");
+		acmeClient.setHttp01RootDir(HTTP01_ROOT_DIR);
+		acmeClient.executeHttp01Challenges();
 		
 		// Infinite wait on shutdown semaphore
 		shutdownSemaphore.acquire();
@@ -79,7 +81,7 @@ public class App {
 		}
 		
 		// Create (and bind) the server
-		http01ChallengeServer = new Http01ChallengeServer(HTTP01_PORT, HTTP01_ROOT_DIR);
+		http01ChallengeServer = new Http01Server(HTTP01_PORT, HTTP01_ROOT_DIR);
 		logger.fine("Created http01 server and bound to port " + HTTP01_PORT);
 		
 		return;

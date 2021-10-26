@@ -42,6 +42,9 @@ public class AcmeClient {
 	// Authorisations retrieval
 	private AuthorisationsRetriever authorisationsRetriever;
 	private Collection<JsonObject> authorisations;
+	// HTTP-01
+	private Http01ChallExecutor http01ChallExecutor;
+	private String http01RootDir;
 	// Logger
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AcmeClient");
 
@@ -58,6 +61,10 @@ public class AcmeClient {
 		logger.info("Generated public key:\n" + accountKeypair.getPublic());
 	}
 	
+	public void setHttp01RootDir(String http01RootDir) {
+		this.http01RootDir = http01RootDir;
+	}
+
 	/**
 	 * Retrieves the directory JSON object containing all the other URLs
 	 */
@@ -153,6 +160,30 @@ public class AcmeClient {
 		nextNonce = authorisationsRetriever.getNextNonce();
 		
 		logger.info("Retrieved authorisations: " + authorisations);
+		
+		return;
+	}
+	
+	/**
+	 * Executes all http-01 challenges
+	 * @throws IOException 
+	 * @throws SignatureException 
+	 * @throws NoSuchProviderException 
+	 * @throws NoSuchAlgorithmException 
+	 * @throws InvalidKeyException 
+	 */
+	public void executeHttp01Challenges() throws InvalidKeyException, NoSuchAlgorithmException, 
+												NoSuchProviderException, SignatureException, 
+												IOException {
+		// Execute authorisations
+		http01ChallExecutor = new Http01ChallExecutor(authorisations, nextNonce);
+		http01ChallExecutor.setCrypto(accountKeypair, EC_CURVE_NAME, EC_SIGN_ALGO_BC_NAME, 
+										EC_SIGN_ALGO_ACME_NAME);
+		http01ChallExecutor.setAccountUrl(accountUrl);
+		http01ChallExecutor.setHttp01RootDir(http01RootDir);
+		http01ChallExecutor.executeAllHttp01Challenges();
+		
+		nextNonce = http01ChallExecutor.getNextNonce();
 		
 		return;
 	}

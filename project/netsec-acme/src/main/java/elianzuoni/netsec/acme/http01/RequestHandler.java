@@ -7,15 +7,16 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
 
+import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-class ChallengeRequestHandler implements HttpHandler {
+class RequestHandler implements HttpHandler {
 	
 	private String rootDir;
-	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.http01.ChallengeHandler");
+	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.http01.RequestHandler");
 
-	ChallengeRequestHandler(String rootDir) {
+	RequestHandler(String rootDir) {
 		super();
 		this.rootDir = rootDir;
 		
@@ -47,6 +48,9 @@ class ChallengeRequestHandler implements HttpHandler {
 			return;
 		}
 		
+		// Set content type as application/octet-stream
+		Headers responseHeaders = exchange.getResponseHeaders();
+		responseHeaders.add("Content-Type", "application/octet-stream");
 		// Write challenge onto response (with code "200: OK")
 		exchange.sendResponseHeaders(200, challenge.length);
 		responseStream = exchange.getResponseBody();
