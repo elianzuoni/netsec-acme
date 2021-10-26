@@ -5,3 +5,4 @@ cd project/
 $JAVA_HOME/bin/keytool -import -alias pebble -cacerts -noprompt -storepass changeit -file pebble.minica.pem
 cd netsec-acme/
 mvn package
+cd ../..
