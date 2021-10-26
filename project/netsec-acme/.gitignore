@@ -1,4 +1,5 @@
 /target/
+/src/main/resources/http01/
 .project
 .classpath
 *.class
