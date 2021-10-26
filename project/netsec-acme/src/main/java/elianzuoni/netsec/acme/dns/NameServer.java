@@ -3,43 +3,38 @@ package elianzuoni.netsec.acme.dns;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketException;
 import java.util.concurrent.Executor;
 import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.xbill.DNS.Message;
+import org.xbill.DNS.Record;
+import org.xbill.DNS.Section;
+import org.xbill.DNS.Type;
+
 public class NameServer {
 	
 	private static final int MAX_UDP_PAYLOAD_SIZE = 512;
 	private final int port;
-	private final String ipAddrForAll;
-	private final String dns01RootDir;
 	private AQueryHandler aQueryHandler;
 	private TxtQueryHandler txtQueryHandler;
 	private DatagramSocket socket;
-	private Executor executor;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.dns.NameServer");
 	
 	
 	public NameServer(int port, String ipAddrForAll, String dns01RootDir) {
 		super();
 		this.port = port;
-		this.ipAddrForAll = ipAddrForAll;
-		this.dns01RootDir = dns01RootDir;
 		
 		aQueryHandler = new AQueryHandler(ipAddrForAll);
-		txtQueryHandler = new TxtQueryhandler(dns01RootDir);
-	}
-
-	public void setExecutor(Executor executor) {
-		this.executor = executor;
+		txtQueryHandler = new TxtQueryHandler(dns01RootDir);
 	}
 	
 	/**
 	 * Starts listening on a thread determined by the executor
 	 */
-	public void start() {
+	public void start(Executor executor) {
 		executor.execute(() -> {
 			// Make the implicit closure more evident
 			try {
@@ -90,7 +85,7 @@ public class NameServer {
 	/**
 	 * Decode the packet, then dispatch based on what Record Type is in the query
 	 */
-	private byte[] processPacket(byte[] rawInPkt) {
+	private byte[] processPacket(byte[] rawInPkt) throws IOException {
 		Message request = new Message(rawInPkt);
 		Record questionRecord;
 		Message response = new Message(request.getHeader().getID());

@@ -64,11 +64,32 @@ public class AcmeClient {
 	public void setHttp01RootDir(String http01RootDir) {
 		this.http01RootDir = http01RootDir;
 	}
+	
+	/**
+	 * Performs the whole pipeline corresponding to the http-01 challenge
+	 * @throws IOException 
+	 * @throws MalformedURLException 
+	 * @throws SignatureException 
+	 * @throws InvalidAlgorithmParameterException 
+	 * @throws NoSuchProviderException 
+	 * @throws NoSuchAlgorithmException 
+	 * @throws InvalidKeyException 
+	 */
+	public void performHttp01() throws MalformedURLException, IOException, InvalidKeyException, 
+										NoSuchAlgorithmException, NoSuchProviderException, 
+										InvalidAlgorithmParameterException, SignatureException {
+		retrieveDirectory();
+		retrieveNonce();
+		createAccount();
+		placeOrder();
+		retrieveAuthorisations();
+		executeHttp01Challenges();
+	}
 
 	/**
 	 * Retrieves the directory JSON object containing all the other URLs
 	 */
-	public void retrieveDirectory() throws MalformedURLException, IOException {
+	private void retrieveDirectory() throws MalformedURLException, IOException {
 		// Fetch the directory from the ACME server
 		directoryRetriever = new DirectoryRetriever(directoryUrl);
 		directoryRetriever.retrieveDirectory();
@@ -83,7 +104,7 @@ public class AcmeClient {
 	/**
 	 * Retrieves a fresh nonce to be used in the next request
 	 */
-	public void retrieveNonce() throws MalformedURLException, IOException {
+	private void retrieveNonce() throws MalformedURLException, IOException {
 		// Fetch the next nonce from the ACME server
 		nonceRetriever = new NonceRetriever(directory.getString("newNonce"));
 		nonceRetriever.retrieveNonce();
@@ -99,7 +120,7 @@ public class AcmeClient {
 	 * Creates a new account on the ACME server, identified by the URL returned in the 
 	 * response.
 	 */
-	public void createAccount() throws NoSuchAlgorithmException, NoSuchProviderException, 
+	private void createAccount() throws NoSuchAlgorithmException, NoSuchProviderException, 
 										InvalidAlgorithmParameterException, InvalidKeyException, 
 										SignatureException, IOException {
 		// Create the account
@@ -119,7 +140,7 @@ public class AcmeClient {
 	/**
 	 * Places an order on the ACME server for the specified domains
 	 */
-	public void placeOrder() throws InvalidKeyException, SignatureException, NoSuchAlgorithmException, 
+	private void placeOrder() throws InvalidKeyException, SignatureException, NoSuchAlgorithmException, 
 									NoSuchProviderException, InvalidAlgorithmParameterException, 
 									IOException {
 		// Place the order
@@ -140,7 +161,7 @@ public class AcmeClient {
 	/**
 	 * Retrieves all the authorisation objects from the URLs specified in the order object
 	 */
-	public void retrieveAuthorisations() throws InvalidKeyException, SignatureException, 
+	private void retrieveAuthorisations() throws InvalidKeyException, SignatureException, 
 												NoSuchAlgorithmException, NoSuchProviderException, 
 												InvalidAlgorithmParameterException, IOException {
 		// Get authorisation URLs
@@ -172,7 +193,7 @@ public class AcmeClient {
 	 * @throws NoSuchAlgorithmException 
 	 * @throws InvalidKeyException 
 	 */
-	public void executeHttp01Challenges() throws InvalidKeyException, NoSuchAlgorithmException, 
+	private void executeHttp01Challenges() throws InvalidKeyException, NoSuchAlgorithmException, 
 												NoSuchProviderException, SignatureException, 
 												IOException {
 		// Execute authorisations
