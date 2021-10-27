@@ -18,6 +18,7 @@ import javax.json.JsonObject;
 import javax.net.ssl.HttpsURLConnection;
 
 import elianzuoni.netsec.acme.jose.Jws;
+import elianzuoni.netsec.acme.utils.HttpUtils;
 
 class AuthorisationsRetriever {
 	

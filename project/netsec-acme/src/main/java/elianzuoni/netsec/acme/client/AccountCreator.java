@@ -17,6 +17,7 @@ import javax.json.JsonValue;
 import javax.net.ssl.HttpsURLConnection;
 
 import elianzuoni.netsec.acme.jose.Jws;
+import elianzuoni.netsec.acme.utils.HttpUtils;
 import elianzuoni.netsec.acme.jose.Jwk;
 
 class AccountCreator {

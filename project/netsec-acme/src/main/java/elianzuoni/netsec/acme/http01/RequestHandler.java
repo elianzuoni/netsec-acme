@@ -57,7 +57,8 @@ class RequestHandler implements HttpHandler {
 		responseStream.write(challenge);
 		responseStream.close();
 		
-		logger.info("Sent " + challenge.length + "-byte long challenge with response code 200: OK");
+		logger.info("Sent " + challenge.length + "-byte long challenge with response code 200: OK\n" +
+					new String(challenge));
 		
 		return;
 	}

@@ -21,7 +21,7 @@ public class Jws {
 	private JsonObjectBuilder headerBuilder;
 	private JsonObjectBuilder payloadBuilder;
 	private boolean isPostAsGet;
-	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.jws.Jws");
+	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.jose.Jws");
 	
 	public Jws() {
 		super();

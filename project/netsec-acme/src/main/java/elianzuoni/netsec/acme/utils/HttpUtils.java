@@ -1,4 +1,4 @@
-package elianzuoni.netsec.acme.client;
+package elianzuoni.netsec.acme.utils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,15 +10,15 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-class HttpUtils {
+public class HttpUtils {
 	
-	private static Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.HttpUtil");
+	private static Logger logger = Logger.getLogger("elianzuoni.netsec.acme.utils.HttpUtils");
 	
 	/**
 	 * Checks whether a non-passing response code was returned.
 	 * In case not, the whole response is dumped and an exception is thrown.
 	 */
-	static void checkResponseCode(HttpURLConnection conn, int...passingCodes) 
+	public static void checkResponseCode(HttpURLConnection conn, int...passingCodes) 
 			throws IOException {
 		// Check if the response code is good
 		for(int code : passingCodes) {
@@ -41,7 +41,7 @@ class HttpUtils {
 	 * Extracts a required header from the response, throwing an exception
 	 * if it is absent.
 	 */
-	static String getRequiredHeader(HttpURLConnection conn, String key) 
+	public static String getRequiredHeader(HttpURLConnection conn, String key) 
 									throws IOException {
 		String value = conn.getHeaderField(key);
 		

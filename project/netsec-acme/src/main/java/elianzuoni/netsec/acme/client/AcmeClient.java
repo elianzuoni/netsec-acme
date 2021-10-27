@@ -45,6 +45,13 @@ public class AcmeClient {
 	// HTTP-01
 	private Http01ChallExecutor http01ChallExecutor;
 	private String http01RootDir;
+	// DNS-01
+	private Dns01ChallExecutor dns01ChallExecutor;
+	private String dns01RootDir;
+	private String dns01TxtRecordFileName;
+	// Challenge responding
+	private ChallResponder challResponder;
+	private Collection<String> challRespondUrls;
 	// Logger
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AcmeClient");
 
@@ -65,15 +72,16 @@ public class AcmeClient {
 		this.http01RootDir = http01RootDir;
 	}
 	
+	public void setDns01RootDir(String dns01RootDir) {
+		this.dns01RootDir = dns01RootDir;
+	}
+	
+	public void setDns01TxtRecordFileName(String dns01TxtRecordFileName) {
+		this.dns01TxtRecordFileName = dns01TxtRecordFileName;
+	}
+
 	/**
 	 * Performs the whole pipeline corresponding to the http-01 challenge
-	 * @throws IOException 
-	 * @throws MalformedURLException 
-	 * @throws SignatureException 
-	 * @throws InvalidAlgorithmParameterException 
-	 * @throws NoSuchProviderException 
-	 * @throws NoSuchAlgorithmException 
-	 * @throws InvalidKeyException 
 	 */
 	public void performHttp01() throws MalformedURLException, IOException, InvalidKeyException, 
 										NoSuchAlgorithmException, NoSuchProviderException, 
@@ -84,6 +92,22 @@ public class AcmeClient {
 		placeOrder();
 		retrieveAuthorisations();
 		executeHttp01Challenges();
+		respondToChallenges();
+	}
+	
+	/**
+	 * Performs the whole pipeline corresponding to the dns-01 challenge
+	 */
+	public void performDns01() throws MalformedURLException, IOException, InvalidKeyException, 
+										NoSuchAlgorithmException, NoSuchProviderException, 
+										InvalidAlgorithmParameterException, SignatureException {
+		retrieveDirectory();
+		retrieveNonce();
+		createAccount();
+		placeOrder();
+		retrieveAuthorisations();
+		executeDns01Challenges();
+		respondToChallenges();
 	}
 
 	/**
@@ -187,24 +211,52 @@ public class AcmeClient {
 	
 	/**
 	 * Executes all http-01 challenges
-	 * @throws IOException 
-	 * @throws SignatureException 
-	 * @throws NoSuchProviderException 
-	 * @throws NoSuchAlgorithmException 
-	 * @throws InvalidKeyException 
 	 */
-	private void executeHttp01Challenges() throws InvalidKeyException, NoSuchAlgorithmException, 
-												NoSuchProviderException, SignatureException, 
-												IOException {
+	private void executeHttp01Challenges() throws IOException, InvalidKeyException, 
+													NoSuchAlgorithmException, NoSuchProviderException, 
+													SignatureException {
 		// Execute authorisations
-		http01ChallExecutor = new Http01ChallExecutor(authorisations, nextNonce);
-		http01ChallExecutor.setCrypto(accountKeypair, EC_CURVE_NAME, EC_SIGN_ALGO_BC_NAME, 
-										EC_SIGN_ALGO_ACME_NAME);
-		http01ChallExecutor.setAccountUrl(accountUrl);
+		http01ChallExecutor = new Http01ChallExecutor(authorisations);
+		http01ChallExecutor.setCrypto(accountKeypair, EC_CURVE_NAME);
 		http01ChallExecutor.setHttp01RootDir(http01RootDir);
 		http01ChallExecutor.executeAllHttp01Challenges();
 		
-		nextNonce = http01ChallExecutor.getNextNonce();
+		challRespondUrls = http01ChallExecutor.getRespondUrls();
+		
+		return;
+	}
+	
+	/**
+	 * Executes all dns-01 challenges
+	 */
+	private void executeDns01Challenges() throws IOException, InvalidKeyException, 
+													NoSuchAlgorithmException, NoSuchProviderException, 
+													SignatureException {
+		// Execute authorisations
+		dns01ChallExecutor = new Dns01ChallExecutor(authorisations);
+		dns01ChallExecutor.setCrypto(accountKeypair, EC_CURVE_NAME);
+		dns01ChallExecutor.setDns01RootDir(dns01RootDir);
+		dns01ChallExecutor.setTxtRecordFileName(dns01TxtRecordFileName);
+		dns01ChallExecutor.executeAllDns01Challenges();
+		
+		challRespondUrls = dns01ChallExecutor.getRespondUrls();
+		
+		return;
+	}
+	
+	/**
+	 * Respond to all challenges, confirming that they are ready
+	 */
+	private void respondToChallenges() throws InvalidKeyException, NoSuchAlgorithmException, 
+												NoSuchProviderException, SignatureException, 
+												IOException {
+		// Respond to challenges
+		challResponder = new ChallResponder(nextNonce, challRespondUrls);
+		challResponder.setAccountUrl(accountUrl);
+		challResponder.setCrypto(accountKeypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
+		challResponder.respondToAllChallenges();
+		
+		nextNonce = challResponder.getNextNonce();
 		
 		return;
 	}

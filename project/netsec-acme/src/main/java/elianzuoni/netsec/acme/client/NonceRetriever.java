@@ -11,6 +11,8 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.net.ssl.HttpsURLConnection;
 
+import elianzuoni.netsec.acme.utils.HttpUtils;
+
 class NonceRetriever {
 	private String url;
 	private String nextNonce;

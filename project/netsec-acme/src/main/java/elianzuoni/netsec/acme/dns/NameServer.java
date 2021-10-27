@@ -23,12 +23,13 @@ public class NameServer {
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.dns.NameServer");
 	
 	
-	public NameServer(int port, String ipAddrForAll, String dns01RootDir) {
+	public NameServer(int port, String ipAddrForAll, String dns01RootDir, 
+						String dns01TxtRecordFilename) {
 		super();
 		this.port = port;
 		
 		aQueryHandler = new AQueryHandler(ipAddrForAll);
-		txtQueryHandler = new TxtQueryHandler(dns01RootDir);
+		txtQueryHandler = new TxtQueryHandler(dns01RootDir, dns01TxtRecordFilename);
 	}
 	
 	/**
@@ -98,11 +99,13 @@ public class NameServer {
 		response.addRecord(questionRecord, Section.QUESTION);
 		
 		// Select the right handler, based on the request Record Type
+		logger.fine("Selecting the handler for record:\n" + questionRecord);
 		UnaryOperator<Record> handler;
 		switch(questionRecord.getType()) 
 		{
 		case Type.A:
-			logger.info("Handling an A query");
+		case Type.AAAA:
+			logger.info("Handling an A or AAAA query");
 			handler = aQueryHandler;
 			break;
 			
@@ -112,7 +115,7 @@ public class NameServer {
 			break;
 			
 		default:
-			logger.warning("Handling an unknown-type Query");
+			logger.warning("Handling an unknown-type Query: " + questionRecord.getType());
 			handler = ((message) -> {
 				return null;
 			});

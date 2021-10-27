@@ -29,7 +29,8 @@ public class App {
 	private static final String HTTP01_ROOT_DIR = "src/main/resources/http01/";
 	private static NameServer dnsServer;
 	private static final int DNS_PORT = 10053;
-	private static final String DNS01_ROOT_DIR = "src/main/resources/dns01";
+	private static final String DNS01_ROOT_DIR = "src/main/resources/dns01/";
+	private static final String DNS01_TXT_RECORD_FILENAME = "txt_record";
 	private static final int MAX_SERVERS_THREADS = 8;
 	private static Executor serversExecutor = Executors.newFixedThreadPool(MAX_SERVERS_THREADS);
 	private static final String ACME_DIR_URL = "https://localhost:14000/dir";
@@ -56,11 +57,13 @@ public class App {
 		logger.info("All servers started");
 		
 		// Set up client
-		acmeClient = new AcmeClient(ACME_DIR_URL, Arrays.asList("example.com"));
+		acmeClient = new AcmeClient(ACME_DIR_URL, Arrays.asList("dio.example.com"));
 		acmeClient.setHttp01RootDir(HTTP01_ROOT_DIR);
+		acmeClient.setDns01RootDir(DNS01_ROOT_DIR);
+		acmeClient.setDns01TxtRecordFileName(DNS01_TXT_RECORD_FILENAME);
 		
 		// Operate client
-		acmeClient.performHttp01();
+		acmeClient.performDns01();
 		
 		// Infinite wait on shutdown semaphore
 		shutdownSemaphore.acquire();
@@ -92,7 +95,7 @@ public class App {
 		}
 		
 		// Create (and bind) the server
-		dnsServer = new NameServer(DNS_PORT, "127.0.0.1", DNS01_ROOT_DIR);
+		dnsServer = new NameServer(DNS_PORT, "127.0.0.1", DNS01_ROOT_DIR, DNS01_TXT_RECORD_FILENAME);
 		logger.fine("Created dns01 server and bound to port " + DNS_PORT);
 		
 		return;
