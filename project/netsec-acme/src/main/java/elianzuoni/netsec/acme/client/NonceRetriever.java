@@ -1,14 +1,11 @@
 package elianzuoni.netsec.acme.client;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Logger;
 
-import javax.json.Json;
-import javax.json.JsonObject;
 import javax.net.ssl.HttpsURLConnection;
 
 import elianzuoni.netsec.acme.utils.HttpUtils;

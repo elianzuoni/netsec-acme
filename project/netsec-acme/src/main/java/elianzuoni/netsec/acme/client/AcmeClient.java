@@ -18,6 +18,8 @@ import javax.json.JsonObject;
 import javax.json.JsonString;
 import javax.json.JsonValue;
 
+import elianzuoni.netsec.acme.app.App.ChallengeType;
+
 public class AcmeClient {
 
 	// Keypair and signature
@@ -81,17 +83,24 @@ public class AcmeClient {
 	}
 
 	/**
-	 * Performs the whole pipeline corresponding to the http-01 challenge
+	 * Performs the whole pipeline
 	 */
-	public void performHttp01() throws MalformedURLException, IOException, InvalidKeyException, 
-										NoSuchAlgorithmException, NoSuchProviderException, 
-										InvalidAlgorithmParameterException, SignatureException {
+	public void fatica(ChallengeType challType, boolean revoke) throws MalformedURLException, 
+																IOException, InvalidKeyException, 
+																NoSuchAlgorithmException, 
+																NoSuchProviderException, 
+																InvalidAlgorithmParameterException, 
+																SignatureException {
 		retrieveDirectory();
 		retrieveNonce();
 		createAccount();
 		placeOrder();
 		retrieveAuthorisations();
-		executeHttp01Challenges();
+		if(challType == ChallengeType.HTTP_01) {
+			executeHttp01Challenges();
+		} else {
+			executeDns01Challenges();
+		}
 		respondToChallenges();
 	}
 	
