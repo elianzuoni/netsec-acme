@@ -11,12 +11,9 @@ import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.logging.Logger;
 
 import javax.json.JsonObject;
-import javax.json.JsonString;
-import javax.json.JsonValue;
 
 import elianzuoni.netsec.acme.app.App.ChallengeType;
 
@@ -54,6 +51,8 @@ public class AcmeClient {
 	// Challenge responding
 	private ChallResponder challResponder;
 	private Collection<String> challRespondUrls;
+	// Authorisations validation
+	private AuthorisationsValidator authorisationsValidator;
 	// Logger
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AcmeClient");
 
@@ -85,12 +84,7 @@ public class AcmeClient {
 	/**
 	 * Performs the whole pipeline
 	 */
-	public void fatica(ChallengeType challType, boolean revoke) throws MalformedURLException, 
-																IOException, InvalidKeyException, 
-																NoSuchAlgorithmException, 
-																NoSuchProviderException, 
-																InvalidAlgorithmParameterException, 
-																SignatureException {
+	public void fatica(ChallengeType challType, boolean revoke) throws Exception {
 		retrieveDirectory();
 		retrieveNonce();
 		createAccount();
@@ -102,21 +96,7 @@ public class AcmeClient {
 			executeDns01Challenges();
 		}
 		respondToChallenges();
-	}
-	
-	/**
-	 * Performs the whole pipeline corresponding to the dns-01 challenge
-	 */
-	public void performDns01() throws MalformedURLException, IOException, InvalidKeyException, 
-										NoSuchAlgorithmException, NoSuchProviderException, 
-										InvalidAlgorithmParameterException, SignatureException {
-		retrieveDirectory();
-		retrieveNonce();
-		createAccount();
-		placeOrder();
-		retrieveAuthorisations();
-		executeDns01Challenges();
-		respondToChallenges();
+		validateAuthorisations();
 	}
 
 	/**
@@ -197,15 +177,8 @@ public class AcmeClient {
 	private void retrieveAuthorisations() throws InvalidKeyException, SignatureException, 
 												NoSuchAlgorithmException, NoSuchProviderException, 
 												InvalidAlgorithmParameterException, IOException {
-		// Get authorisation URLs
-		Collection<String> urls = new LinkedList<String>();
-		for(JsonValue auth : order.get("authorizations").asJsonArray()) {
-			String authUrl = ((JsonString)auth).getString();
-			urls.add(authUrl);
-		}
-		
 		// Retrieve authorisations
-		authorisationsRetriever = new AuthorisationsRetriever(urls, nextNonce);
+		authorisationsRetriever = new AuthorisationsRetriever(order, nextNonce);
 		authorisationsRetriever.setCrypto(accountKeypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
 		authorisationsRetriever.setAccountUrl(accountUrl);
 		authorisationsRetriever.retrieveAuthorisations();
@@ -266,6 +239,24 @@ public class AcmeClient {
 		challResponder.respondToAllChallenges();
 		
 		nextNonce = challResponder.getNextNonce();
+		
+		return;
+	}
+	
+	/**
+	 * Validates all the authorisation objects from the URLs specified in the order object
+	 */
+	private void validateAuthorisations() throws Exception {
+		// Validate authorisations
+		authorisationsValidator = new AuthorisationsValidator(order, nextNonce);
+		authorisationsValidator.setCrypto(accountKeypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
+		authorisationsValidator.setAccountUrl(accountUrl);
+		authorisationsValidator.validateAuthorisations();
+		
+		authorisations = authorisationsValidator.getAuthorisations();
+		nextNonce = authorisationsValidator.getNextNonce();
+		
+		logger.info("Validated authorisations: " + authorisations);
 		
 		return;
 	}

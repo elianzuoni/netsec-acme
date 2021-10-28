@@ -15,6 +15,8 @@ import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonObject;
+import javax.json.JsonString;
+import javax.json.JsonValue;
 import javax.net.ssl.HttpsURLConnection;
 
 import elianzuoni.netsec.acme.jose.Jws;
@@ -22,7 +24,7 @@ import elianzuoni.netsec.acme.utils.HttpUtils;
 
 class AuthorisationsRetriever {
 	
-	private Collection<String> urls;
+	private JsonObject order;
 	private String nonce;
 	private String signAlgoBCName;
 	private String signAlgoAcmeName;
@@ -32,13 +34,10 @@ class AuthorisationsRetriever {
 	private String nextNonce;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AuthorisationsRetriever");
 	
-	/**
-	 * @param url the server's endpoint for placing orders
-	 * @param nonce the last Replay-Nonce value received
-	 */
-	AuthorisationsRetriever(Collection<String> urls, String nonce) {
+	
+	AuthorisationsRetriever(JsonObject order, String nonce) {
 		super();
-		this.urls = urls;
+		this.order = order;
 		this.nonce = nonce;
 		this.authorisations = new LinkedList<JsonObject>();
 	}
@@ -68,9 +67,11 @@ class AuthorisationsRetriever {
 	void retrieveAuthorisations() throws InvalidKeyException, SignatureException,
 											NoSuchAlgorithmException, NoSuchProviderException, 
 											InvalidAlgorithmParameterException, IOException {
-		// Populate the map
-		for(String url : urls) {
-			authorisations.add(retrieveAuthorisation(url));
+		// Populate the authorisation collection
+		for(JsonValue auth : order.get("authorizations").asJsonArray()) {
+			String authUrl = ((JsonString)auth).getString();
+			authorisations.add(retrieveAuthorisation(authUrl));
+			
 			// Shift back the nonce for the next request
 			nonce = nextNonce;
 		}
@@ -118,7 +119,7 @@ class AuthorisationsRetriever {
 	}
 
 	/**
-	 * Only builds the JWS body of the POST request
+	 * Only builds the JWS body of the POST-as-GET request
 	 */
 	private JsonObject buildReqBody(String url) throws SignatureException, InvalidKeyException, 
 														NoSuchAlgorithmException {

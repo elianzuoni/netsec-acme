@@ -2,12 +2,7 @@ package elianzuoni.netsec.acme.app;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.Security;
-import java.security.SignatureException;
 import java.util.Locale;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -43,10 +38,7 @@ public class App {
 		DNS_01,
 	}
 	
-	public static void main(String[] args) throws SecurityException, IOException, InterruptedException, 
-												NoSuchAlgorithmException, NoSuchProviderException, 
-												InvalidAlgorithmParameterException, InvalidKeyException, 
-												SignatureException {
+	public static void main(String[] args) throws Exception {
 		// Parse command-line arguments
 		cli = CliParams.parse(args);
 				
