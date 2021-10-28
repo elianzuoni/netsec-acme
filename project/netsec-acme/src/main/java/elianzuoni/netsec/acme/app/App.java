@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.security.Security;
 import java.util.Locale;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.logging.LogManager;
@@ -15,6 +16,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import elianzuoni.netsec.acme.client.AcmeClient;
 import elianzuoni.netsec.acme.dns.NameServer;
 import elianzuoni.netsec.acme.http01.Http01Server;
+import elianzuoni.netsec.acme.shutdown.ShutdownServer;
 
 public class App {
 	
@@ -26,8 +28,10 @@ public class App {
 	private static final int DNS_PORT = 10053;
 	private static final String DNS01_ROOT_DIR = "src/main/resources/dns01/";
 	private static final String DNS01_TXT_RECORD_FILENAME = "txt_record";
+	private static ShutdownServer shutdownServer;
+	private static final int SHUTDOWN_PORT = 5003;
 	private static final int MAX_SERVERS_THREADS = 8;
-	private static Executor serversExecutor = Executors.newFixedThreadPool(MAX_SERVERS_THREADS);
+	private static ExecutorService serversExecutor = Executors.newFixedThreadPool(MAX_SERVERS_THREADS);
 	private static AcmeClient acmeClient;
 	private static Semaphore shutdownSemaphore = new Semaphore(0);
 	private static Logger logger = Logger.getLogger("elianzuoni.netsec.acme.app.App");
@@ -48,11 +52,13 @@ public class App {
 		// Set up all servers
 		setUpHttp01();
 		setUpDns();
+		setUpShutdown();
 		logger.info("All servers set up");
 		
 		// Start all servers
 		http01Server.start(serversExecutor);
 		dnsServer.start(serversExecutor);
+		shutdownServer.start(serversExecutor);
 		logger.info("All servers started");
 		
 		// Set up client
@@ -64,8 +70,14 @@ public class App {
 		// Operate client
 		acmeClient.fatica(cli.challType, cli.revoke);
 		
-		// Infinite wait on shutdown semaphore
+		// Wait on shutdown semaphore
 		shutdownSemaphore.acquire();
+		
+		// Shut down
+		logger.info("Received shutdown command, closing");
+		System.exit(0);
+		
+		return;
 	}
 
 	private static void setLoggerProperties() throws SecurityException, IOException {
@@ -97,6 +109,14 @@ public class App {
 		dnsServer = new NameServer(DNS_PORT, cli.ipAddrForAll, DNS01_ROOT_DIR, 
 									DNS01_TXT_RECORD_FILENAME);
 		logger.fine("Created dns01 server and bound to port " + DNS_PORT);
+		
+		return;
+	}
+	
+	private static void setUpShutdown() throws IOException {
+		// Create (and bind) the server
+		shutdownServer = new ShutdownServer(cli.ipAddrForAll, SHUTDOWN_PORT, shutdownSemaphore);
+		logger.fine("Created shutdown server and bound to port " + SHUTDOWN_PORT);
 		
 		return;
 	}
