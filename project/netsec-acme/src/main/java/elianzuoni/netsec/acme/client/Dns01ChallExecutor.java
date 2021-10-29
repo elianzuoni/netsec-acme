@@ -2,14 +2,8 @@ package elianzuoni.netsec.acme.client;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.KeyPair;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
 import java.security.interfaces.ECPublicKey;
 import java.util.Base64;
 import java.util.Collection;
@@ -21,34 +15,30 @@ import javax.json.JsonObject;
 import javax.json.JsonValue;
 
 import elianzuoni.netsec.acme.jose.Jwk;
+import elianzuoni.netsec.acme.jose.JwsParams;
 import elianzuoni.netsec.acme.utils.UrlUtils;
 
 class Dns01ChallExecutor {
 	
 	private static final String DNS01_CHALL_DIR = "_acme-challenge/";
 	private Collection<JsonObject> authorisations;
-	private KeyPair accountKeypair;
-	private String crv;
+	private JwsParams jwsParams;
 	private String dns01RootDir;
 	private String txtRecordFileName;
 	private Collection<String> respondUrls;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.Dns01ChallExecutor");
 	
 	
-	Dns01ChallExecutor(Collection<JsonObject> authorisations) {
+	Dns01ChallExecutor(Collection<JsonObject> authorisations, JwsParams jwsParams) {
 		super();
 		this.authorisations = authorisations;
+		this.jwsParams = jwsParams;
 		
 		respondUrls = new LinkedList<String>();
 	}
 	
 	Collection<String> getRespondUrls() {
 		return respondUrls;
-	}
-
-	void setCrypto(KeyPair accountKeypair, String crv) {
-		this.accountKeypair = accountKeypair;
-		this.crv = crv;
 	}
 
 	void setDns01RootDir(String dns01RootDir) {
@@ -62,11 +52,10 @@ class Dns01ChallExecutor {
 	/**
 	 * Executes the dns01 challenge contained in each authorisation object
 	 */
-	public void executeAllDns01Challenges() throws NoSuchAlgorithmException, NoSuchProviderException, 
-													IOException, InvalidKeyException, 
-													SignatureException {
+	public void executeAllDns01Challenges() throws Exception {
 		// Create the JWK thumbprint
-		String jwkThumbprint = Jwk.getThumbprint((ECPublicKey)accountKeypair.getPublic(), crv);
+		String jwkThumbprint = Jwk.getThumbprint((ECPublicKey)jwsParams.accountKeypair.getPublic(), 
+													jwsParams.crv);
 		
 		// Execute all authorisations
 		for(JsonObject auth : authorisations) {
@@ -101,8 +90,7 @@ class Dns01ChallExecutor {
 	 * Fulfils a single challenge by creating the file containing the hashed key authorisation
 	 */
 	private void fulfilDns01Challenge(JsonObject chall, String identifier, String jwkThumbprint) 
-											throws IOException, NoSuchAlgorithmException,
-											NoSuchProviderException {
+											throws Exception {
 		// Construct challenge string
 		String challengeString = chall.getString("token") + "." + jwkThumbprint;
 		logger.fine("Created dns-01 challenge string " + challengeString);

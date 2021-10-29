@@ -1,14 +1,7 @@
 package elianzuoni.netsec.acme.client;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Collection;
 import java.util.logging.Logger;
@@ -16,6 +9,7 @@ import java.util.logging.Logger;
 import javax.json.JsonObject;
 
 import elianzuoni.netsec.acme.app.App.ChallengeType;
+import elianzuoni.netsec.acme.jose.JwsParams;
 
 public class AcmeClient {
 
@@ -24,6 +18,7 @@ public class AcmeClient {
 	private static final String EC_SIGN_ALGO_ACME_NAME = "ES256";
 	private static final String EC_SIGN_ALGO_BC_NAME = "SHA256withPLAIN-ECDSA";
 	private KeyPair accountKeypair;
+	private JwsParams jwsParams;
 	// Directory
 	private DirectoryRetriever directoryRetriever;
 	private String directoryUrl;
@@ -37,9 +32,10 @@ public class AcmeClient {
 	// Order placement
 	private OrderPlacer orderPlacer;
 	private Collection<String> domains;
+	private String orderUrl;
 	private JsonObject order;
 	// Authorisations retrieval
-	private AuthorisationsRetriever authorisationsRetriever;
+	private AuthRetriever authRetriever;
 	private Collection<JsonObject> authorisations;
 	// HTTP-01
 	private Http01ChallExecutor http01ChallExecutor;
@@ -52,12 +48,12 @@ public class AcmeClient {
 	private ChallResponder challResponder;
 	private Collection<String> challRespondUrls;
 	// Authorisations validation
-	private AuthorisationsValidator authorisationsValidator;
+	private AuthAndOrderValidator authAndOrderValidator;
 	// Logger
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AcmeClient");
 
-	public AcmeClient(String directoryUrl, Collection<String> domains) throws NoSuchAlgorithmException, 
-								NoSuchProviderException, InvalidAlgorithmParameterException {
+	
+	public AcmeClient(String directoryUrl, Collection<String> domains) throws Exception {
 		super();
 		this.directoryUrl = directoryUrl;
 		this.domains = domains;
@@ -67,6 +63,10 @@ public class AcmeClient {
 		keyGen.initialize(new ECGenParameterSpec(EC_CURVE_NAME));
 		accountKeypair = keyGen.generateKeyPair();
 		logger.info("Generated public key:\n" + accountKeypair.getPublic());
+		
+		// Set JWS parameters
+		jwsParams = new JwsParams(EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME,
+									EC_CURVE_NAME, accountKeypair);
 	}
 	
 	public void setHttp01RootDir(String http01RootDir) {
@@ -96,13 +96,13 @@ public class AcmeClient {
 			executeDns01Challenges();
 		}
 		respondToChallenges();
-		validateAuthorisations();
+		validateAuthorisationsAndOrder();
 	}
 
 	/**
 	 * Retrieves the directory JSON object containing all the other URLs
 	 */
-	private void retrieveDirectory() throws MalformedURLException, IOException {
+	private void retrieveDirectory() throws Exception {
 		// Fetch the directory from the ACME server
 		directoryRetriever = new DirectoryRetriever(directoryUrl);
 		directoryRetriever.retrieveDirectory();
@@ -117,7 +117,7 @@ public class AcmeClient {
 	/**
 	 * Retrieves a fresh nonce to be used in the next request
 	 */
-	private void retrieveNonce() throws MalformedURLException, IOException {
+	private void retrieveNonce() throws Exception {
 		// Fetch the next nonce from the ACME server
 		nonceRetriever = new NonceRetriever(directory.getString("newNonce"));
 		nonceRetriever.retrieveNonce();
@@ -133,17 +133,16 @@ public class AcmeClient {
 	 * Creates a new account on the ACME server, identified by the URL returned in the 
 	 * response.
 	 */
-	private void createAccount() throws NoSuchAlgorithmException, NoSuchProviderException, 
-										InvalidAlgorithmParameterException, InvalidKeyException, 
-										SignatureException, IOException {
+	private void createAccount() throws Exception {
 		// Create the account
-		accountCreator = new AccountCreator(directory.getString("newAccount"), nextNonce);
-		accountCreator.setCrypto(accountKeypair, EC_CURVE_NAME, EC_SIGN_ALGO_BC_NAME, 
-								EC_SIGN_ALGO_ACME_NAME);
+		accountCreator = new AccountCreator(directory.getString("newAccount"), nextNonce, jwsParams);
 		accountCreator.createAccount();
 		
 		accountUrl = accountCreator.getAccountUrl();
 		nextNonce = accountCreator.getNextNonce();
+		
+		// Update JWS parameters
+		jwsParams.accountUrl = accountUrl;
 		
 		logger.info("Account created, located at " + accountUrl);
 		
@@ -153,16 +152,13 @@ public class AcmeClient {
 	/**
 	 * Places an order on the ACME server for the specified domains
 	 */
-	private void placeOrder() throws InvalidKeyException, SignatureException, NoSuchAlgorithmException, 
-									NoSuchProviderException, InvalidAlgorithmParameterException, 
-									IOException {
+	private void placeOrder() throws Exception {
 		// Place the order
-		orderPlacer = new OrderPlacer(directory.getString("newOrder"), nextNonce);
+		orderPlacer = new OrderPlacer(directory.getString("newOrder"), nextNonce, jwsParams);
 		orderPlacer.setDomains(domains);
-		orderPlacer.setCrypto(accountKeypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
-		orderPlacer.setAccountUrl(accountUrl);
 		orderPlacer.placeOrder();
 		
+		orderUrl = orderPlacer.getOrderUrl();
 		order = orderPlacer.getOrder();
 		nextNonce = orderPlacer.getNextNonce();
 		
@@ -174,17 +170,13 @@ public class AcmeClient {
 	/**
 	 * Retrieves all the authorisation objects from the URLs specified in the order object
 	 */
-	private void retrieveAuthorisations() throws InvalidKeyException, SignatureException, 
-												NoSuchAlgorithmException, NoSuchProviderException, 
-												InvalidAlgorithmParameterException, IOException {
+	private void retrieveAuthorisations() throws Exception {
 		// Retrieve authorisations
-		authorisationsRetriever = new AuthorisationsRetriever(order, nextNonce);
-		authorisationsRetriever.setCrypto(accountKeypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
-		authorisationsRetriever.setAccountUrl(accountUrl);
-		authorisationsRetriever.retrieveAuthorisations();
+		authRetriever = new AuthRetriever(order, nextNonce, jwsParams);
+		authRetriever.retrieveAuthorisations();
 		
-		authorisations = authorisationsRetriever.getAuthorisations();
-		nextNonce = authorisationsRetriever.getNextNonce();
+		authorisations = authRetriever.getAuthorisations();
+		nextNonce = authRetriever.getNextNonce();
 		
 		logger.info("Retrieved authorisations: " + authorisations);
 		
@@ -194,12 +186,9 @@ public class AcmeClient {
 	/**
 	 * Executes all http-01 challenges
 	 */
-	private void executeHttp01Challenges() throws IOException, InvalidKeyException, 
-													NoSuchAlgorithmException, NoSuchProviderException, 
-													SignatureException {
+	private void executeHttp01Challenges() throws Exception {
 		// Execute authorisations
-		http01ChallExecutor = new Http01ChallExecutor(authorisations);
-		http01ChallExecutor.setCrypto(accountKeypair, EC_CURVE_NAME);
+		http01ChallExecutor = new Http01ChallExecutor(authorisations, jwsParams);
 		http01ChallExecutor.setHttp01RootDir(http01RootDir);
 		http01ChallExecutor.executeAllHttp01Challenges();
 		
@@ -211,12 +200,9 @@ public class AcmeClient {
 	/**
 	 * Executes all dns-01 challenges
 	 */
-	private void executeDns01Challenges() throws IOException, InvalidKeyException, 
-													NoSuchAlgorithmException, NoSuchProviderException, 
-													SignatureException {
+	private void executeDns01Challenges() throws Exception {
 		// Execute authorisations
-		dns01ChallExecutor = new Dns01ChallExecutor(authorisations);
-		dns01ChallExecutor.setCrypto(accountKeypair, EC_CURVE_NAME);
+		dns01ChallExecutor = new Dns01ChallExecutor(authorisations, jwsParams);
 		dns01ChallExecutor.setDns01RootDir(dns01RootDir);
 		dns01ChallExecutor.setTxtRecordFileName(dns01TxtRecordFileName);
 		dns01ChallExecutor.executeAllDns01Challenges();
@@ -229,13 +215,9 @@ public class AcmeClient {
 	/**
 	 * Respond to all challenges, confirming that they are ready
 	 */
-	private void respondToChallenges() throws InvalidKeyException, NoSuchAlgorithmException, 
-												NoSuchProviderException, SignatureException, 
-												IOException {
+	private void respondToChallenges() throws Exception {
 		// Respond to challenges
-		challResponder = new ChallResponder(nextNonce, challRespondUrls);
-		challResponder.setAccountUrl(accountUrl);
-		challResponder.setCrypto(accountKeypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
+		challResponder = new ChallResponder(nextNonce, challRespondUrls, jwsParams);
 		challResponder.respondToAllChallenges();
 		
 		nextNonce = challResponder.getNextNonce();
@@ -245,18 +227,19 @@ public class AcmeClient {
 	
 	/**
 	 * Validates all the authorisation objects from the URLs specified in the order object
+	 * and readies the order.
 	 */
-	private void validateAuthorisations() throws Exception {
+	private void validateAuthorisationsAndOrder() throws Exception {
 		// Validate authorisations
-		authorisationsValidator = new AuthorisationsValidator(order, nextNonce);
-		authorisationsValidator.setCrypto(accountKeypair, EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME);
-		authorisationsValidator.setAccountUrl(accountUrl);
-		authorisationsValidator.validateAuthorisations();
+		authAndOrderValidator = new AuthAndOrderValidator(orderUrl, order, nextNonce, jwsParams);
+		authAndOrderValidator.validateAuthorisationsAndOrder();
 		
-		authorisations = authorisationsValidator.getAuthorisations();
-		nextNonce = authorisationsValidator.getNextNonce();
+		authorisations = authAndOrderValidator.getNewAuthorisations();
+		order = authAndOrderValidator.getNewOrder();
+		nextNonce = authAndOrderValidator.getNextNonce();
 		
 		logger.info("Validated authorisations: " + authorisations);
+		logger.info("Readied order: " + order);
 		
 		return;
 	}

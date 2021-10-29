@@ -1,12 +1,9 @@
 package elianzuoni.netsec.acme.jose;
 
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.Signature;
-import java.security.SignatureException;
 import java.util.Base64;
 import java.util.Base64.Encoder;
 import java.util.logging.Logger;
@@ -33,8 +30,7 @@ public class Jws {
 		isPostAsGet = true;
 	}
 	
-	public JsonObject finalise(PrivateKey secretKey, String signAlgo) 
-					throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+	public JsonObject finalise(PrivateKey secretKey, String signAlgo) throws Exception {
 		Encoder base64url = Base64.getUrlEncoder().withoutPadding();
 		
 		// Encode header and payload as base64url without padding

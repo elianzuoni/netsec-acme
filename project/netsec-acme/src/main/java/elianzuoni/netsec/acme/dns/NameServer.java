@@ -1,6 +1,5 @@
 package elianzuoni.netsec.acme.dns;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.concurrent.Executor;
@@ -54,7 +53,7 @@ public class NameServer {
 	/**
 	 * Listens for incoming packets
 	 */
-	private void listen() throws IOException {
+	private void listen() throws Exception {
 		byte rawInPkt[] = new byte[MAX_UDP_PAYLOAD_SIZE];
 		DatagramPacket inPkt;
 		byte rawOutPkt[];
@@ -86,7 +85,7 @@ public class NameServer {
 	/**
 	 * Decode the packet, then dispatch based on what Record Type is in the query
 	 */
-	private byte[] processPacket(byte[] rawInPkt) throws IOException {
+	private byte[] processPacket(byte[] rawInPkt) throws Exception {
 		Message request = new Message(rawInPkt);
 		Record questionRecord;
 		Message response = new Message(request.getHeader().getID());

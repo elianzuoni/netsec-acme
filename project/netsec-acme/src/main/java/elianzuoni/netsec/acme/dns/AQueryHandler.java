@@ -1,6 +1,5 @@
 package elianzuoni.netsec.acme.dns;
 
-import java.io.IOException;
 import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,7 +27,7 @@ class AQueryHandler implements UnaryOperator<Record> {
 		try {
 			return Record.fromString(Name.root, Type.A, DClass.IN, DEFAULT_RECORD_TTL,
 									ipAddrForAll, Name.root);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Received exception when building answer Record", e);
 		}
 		

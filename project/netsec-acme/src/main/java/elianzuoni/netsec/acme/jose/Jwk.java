@@ -2,8 +2,6 @@ package elianzuoni.netsec.acme.jose;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.interfaces.ECPublicKey;
 import java.util.Base64;
 import java.util.Base64.Encoder;
@@ -83,8 +81,7 @@ public class Jwk {
 	/**
 	 * Get the JWK thumbprint of this public key
 	 */
-	public static String getThumbprint(ECPublicKey pk, String crv) throws NoSuchAlgorithmException, 
-																		NoSuchProviderException {
+	public static String getThumbprint(ECPublicKey pk, String crv) throws Exception {
 		// Construct the JWK already in the right format
 		JsonObject jwk = fromEcPublicKey(pk, crv);
 		byte jwkBytes[] = jwk.toString().getBytes(StandardCharsets.UTF_8);

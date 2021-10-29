@@ -1,14 +1,6 @@
 package elianzuoni.netsec.acme.client;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.URL;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
 import java.security.interfaces.ECPublicKey;
 import java.util.logging.Logger;
 
@@ -17,6 +9,8 @@ import javax.json.JsonValue;
 import javax.net.ssl.HttpsURLConnection;
 
 import elianzuoni.netsec.acme.jose.Jws;
+import elianzuoni.netsec.acme.jose.JwsParams;
+import elianzuoni.netsec.acme.utils.AcmeUtils;
 import elianzuoni.netsec.acme.utils.HttpUtils;
 import elianzuoni.netsec.acme.jose.Jwk;
 
@@ -24,10 +18,7 @@ class AccountCreator {
 	
 	private String url;
 	private String nonce;
-	private String crv;
-	private String signAlgoBCName;
-	private String signAlgoAcmeName;
-	private KeyPair keypair;
+	private JwsParams jwsParams;
 	private String accountUrl;
 	private String nextNonce;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AccountCreator");
@@ -36,11 +27,11 @@ class AccountCreator {
 	 * @param url the server's endpoint for creating accounts
 	 * @param nonce the last Replay-Nonce value received
 	 */
-	AccountCreator(String url, String nonce) throws NoSuchAlgorithmException, 
-					NoSuchProviderException, InvalidAlgorithmParameterException {
+	AccountCreator(String url, String nonce, JwsParams jwsParams) {
 		super();
 		this.url = url;
 		this.nonce = nonce;
+		this.jwsParams = jwsParams;
 	}
 
 	String getAccountUrl() {
@@ -50,40 +41,15 @@ class AccountCreator {
 	String getNextNonce() {
 		return nextNonce;
 	}
-	
-	void setCrypto(KeyPair keypair, String crv, String signAlgoBCName, String signAlgoAcmeName) {
-		this.keypair = keypair;
-		this.crv = crv;
-		this.signAlgoBCName = signAlgoBCName;
-		this.signAlgoAcmeName = signAlgoAcmeName;
-	}
 
 	/**
 	 * Creates a new account by sending a POST request to the specified endpoint on
 	 * the server.
-	 * @throws NoSuchProviderException 
-	 * @throws InvalidAlgorithmParameterException 
 	 */
-	void createAccount() throws IOException, InvalidKeyException, SignatureException, 
-								NoSuchAlgorithmException, NoSuchProviderException, 
-								InvalidAlgorithmParameterException {		
+	void createAccount() throws Exception {		
 		// Connect to the newAccount endpoint of the ACME server
 		logger.fine("Connecting to newAccount endpoint at URL " + url);
-		HttpsURLConnection conn = (HttpsURLConnection) new URL(url).openConnection();
-		
-		// Set the request to POST and set its headers
-		conn.setDoOutput(true);
-		conn.setRequestMethod("POST");
-		conn.addRequestProperty("Content-Type", "application/jose+json");
-		
-		// Build the request body
-		JsonObject reqBody = buildReqBody();
-		
-		// Fire the request
-		conn.connect();
-		
-		// Write the request body
-		conn.getOutputStream().write(reqBody.toString().getBytes());
+		HttpsURLConnection conn = AcmeUtils.sendRequest(url, nonce, jwsParams, buildReqBody());
 
 		// Check the response code
 		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_CREATED);
@@ -102,19 +68,19 @@ class AccountCreator {
 	/**
 	 * Only builds the JWS body of the POST request
 	 */
-	private JsonObject buildReqBody() throws SignatureException, InvalidKeyException, 
-											NoSuchAlgorithmException {
+	private JsonObject buildReqBody() throws Exception {
 		Jws body = new Jws();
 		
 		// Build JWS header
-		body.addAlgHeader(signAlgoAcmeName);
+		body.addAlgHeader(jwsParams.signAlgoAcmeName);
 		body.addNonceHeader(nonce);
 		body.addUrlHeader(url);
-		body.addJwkHeader(Jwk.fromEcPublicKey((ECPublicKey)keypair.getPublic(), crv));
+		body.addJwkHeader(Jwk.fromEcPublicKey((ECPublicKey)jwsParams.accountKeypair.getPublic(), 
+												jwsParams.crv));
 		
 		// Build JWS payload
 		body.addPayloadEntry("termsOfServiceAgreed", JsonValue.TRUE);	// Not really necessary
 		
-		return body.finalise(keypair.getPrivate(), signAlgoBCName);
+		return body.finalise(jwsParams.accountKeypair.getPrivate(), jwsParams.signAlgoBCName);
 	}
 }

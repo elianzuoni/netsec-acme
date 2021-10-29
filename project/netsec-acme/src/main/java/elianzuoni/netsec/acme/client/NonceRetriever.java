@@ -1,8 +1,6 @@
 package elianzuoni.netsec.acme.client;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Logger;
 
@@ -27,7 +25,7 @@ class NonceRetriever {
 	/**
 	 * Retrieves the nonce String via a HEAD request over HTTPS.
 	 */
-	void retrieveNonce() throws MalformedURLException, IOException {
+	void retrieveNonce() throws Exception {
 		// Connect to the newNonce endpoint of the ACME server
 		logger.fine("Connecting to newNonce endpoint at URL " + url);
 		HttpsURLConnection conn = (HttpsURLConnection) new URL(url).openConnection();

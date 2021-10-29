@@ -1,6 +1,5 @@
 package elianzuoni.netsec.acme.shutdown;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
@@ -13,7 +12,7 @@ public class ShutdownServer {
 	private HttpServer httpServer;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.shutdown.ShutdownServer");
 
-	public ShutdownServer(String addr, int tcpPort, Semaphore shutdownSemaphore) throws IOException {
+	public ShutdownServer(String addr, int tcpPort, Semaphore shutdownSemaphore) throws Exception {
 		super();
 		
 		this.httpServer = HttpServer.create(new InetSocketAddress(addr, tcpPort), 0);

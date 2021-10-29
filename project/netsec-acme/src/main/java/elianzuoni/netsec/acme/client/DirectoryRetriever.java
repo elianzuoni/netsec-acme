@@ -1,8 +1,6 @@
 package elianzuoni.netsec.acme.client;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Logger;
 
@@ -30,7 +28,7 @@ class DirectoryRetriever {
 	/**
 	 * Retrieves the directory JSON object via a GET request over HTTPS.
 	 */
-	void retrieveDirectory() throws MalformedURLException, IOException {
+	void retrieveDirectory() throws Exception {
 		// Connect to the directory endpoint of the ACME server
 		logger.fine("Connecting to directory endpoint at URL " + url);
 		HttpsURLConnection conn = (HttpsURLConnection) new URL(url).openConnection();

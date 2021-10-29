@@ -1,10 +1,8 @@
 package elianzuoni.netsec.acme.app;
 
 import java.io.File;
-import java.io.IOException;
 import java.security.Security;
 import java.util.Locale;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -80,13 +78,13 @@ public class App {
 		return;
 	}
 
-	private static void setLoggerProperties() throws SecurityException, IOException {
+	private static void setLoggerProperties() throws Exception {
 		Locale.setDefault(Locale.ENGLISH);
 		LogManager.getLogManager().
 			readConfiguration(App.class.getResourceAsStream("/logging/logging.properties"));
 	}
 	
-	private static void setUpHttp01() throws IOException {
+	private static void setUpHttp01() throws Exception {
 		// Create root directory for http01 server, if not existent yet
 		if (new File(HTTP01_ROOT_DIR).mkdirs()) {
 			logger.fine("Root directory created for http01 server: " + HTTP01_ROOT_DIR);
@@ -99,7 +97,7 @@ public class App {
 		return;
 	}
 	
-	private static void setUpDns() throws IOException {
+	private static void setUpDns() throws Exception {
 		// Create root directory for dns-01 server, if not existent yet
 		if (new File(DNS01_ROOT_DIR).mkdirs()) {
 			logger.fine("Root directory created for dns01 server: " + DNS01_ROOT_DIR);
@@ -113,7 +111,7 @@ public class App {
 		return;
 	}
 	
-	private static void setUpShutdown() throws IOException {
+	private static void setUpShutdown() throws Exception {
 		// Create (and bind) the server
 		shutdownServer = new ShutdownServer(cli.ipAddrForAll, SHUTDOWN_PORT, shutdownSemaphore);
 		logger.fine("Created shutdown server and bound to port " + SHUTDOWN_PORT);

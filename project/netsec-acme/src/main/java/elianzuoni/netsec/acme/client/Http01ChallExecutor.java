@@ -2,12 +2,6 @@ package elianzuoni.netsec.acme.client;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
 import java.security.interfaces.ECPublicKey;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -17,31 +11,27 @@ import javax.json.JsonObject;
 import javax.json.JsonValue;
 
 import elianzuoni.netsec.acme.jose.Jwk;
+import elianzuoni.netsec.acme.jose.JwsParams;
 
 class Http01ChallExecutor {
 	
 	private static final String HTTP01_CHALL_DIR = ".well-known/acme-challenge/";
 	private Collection<JsonObject> authorisations;
-	private KeyPair accountKeypair;
-	private String crv;
+	private JwsParams jwsParams;
 	private String http01RootDir;
 	private Collection<String> respondUrls;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.Http01ChallExecutor");
 	
-	Http01ChallExecutor(Collection<JsonObject> authorisations) {
+	Http01ChallExecutor(Collection<JsonObject> authorisations, JwsParams jwsParams) {
 		super();
 		this.authorisations = authorisations;
+		this.jwsParams = jwsParams;
 		
 		respondUrls = new LinkedList<String>();
 	}
 	
 	Collection<String> getRespondUrls() {
 		return respondUrls;
-	}
-
-	void setCrypto(KeyPair accountKeypair, String crv) {
-		this.accountKeypair = accountKeypair;
-		this.crv = crv;
 	}
 
 	void setHttp01RootDir(String http01RootDir) {
@@ -51,11 +41,10 @@ class Http01ChallExecutor {
 	/**
 	 * Executes the http01 challenge contained in each authorisation object
 	 */
-	public void executeAllHttp01Challenges() throws NoSuchAlgorithmException, NoSuchProviderException, 
-													IOException, InvalidKeyException, 
-													SignatureException {
+	public void executeAllHttp01Challenges() throws Exception {
 		// Create the JWK thumbprint
-		String jwkThumbprint = Jwk.getThumbprint((ECPublicKey)accountKeypair.getPublic(), crv);
+		String jwkThumbprint = Jwk.getThumbprint((ECPublicKey)jwsParams.accountKeypair.getPublic(), 
+													jwsParams.crv);
 		
 		// Execute all authorisations
 		for(JsonObject auth : authorisations) {
@@ -86,7 +75,7 @@ class Http01ChallExecutor {
 	/**
 	 * Fulfils a single challenge by creating the file containing the key authorisation
 	 */
-	private void fulfilHttp01Challenge(JsonObject chall, String jwkThumbprint) throws IOException {
+	private void fulfilHttp01Challenge(JsonObject chall, String jwkThumbprint) throws Exception {
 		// Construct challenge string
 		String challengeString = chall.getString("token") + "." + jwkThumbprint;
 		logger.fine("Created http-01 challenge string " + challengeString);

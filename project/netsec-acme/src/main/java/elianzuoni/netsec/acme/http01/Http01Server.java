@@ -1,6 +1,5 @@
 package elianzuoni.netsec.acme.http01;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
 import java.util.logging.Logger;
@@ -12,7 +11,7 @@ public class Http01Server {
 	private HttpServer httpServer;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.http01.Http01Server");
 
-	public Http01Server(String addr, int tcpPort, String rootDir) throws IOException {
+	public Http01Server(String addr, int tcpPort, String rootDir) throws Exception {
 		super();
 		
 		this.httpServer = HttpServer.create(new InetSocketAddress(addr, tcpPort), 0);
