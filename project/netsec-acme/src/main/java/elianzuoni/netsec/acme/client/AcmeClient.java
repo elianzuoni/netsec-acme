@@ -52,6 +52,12 @@ public class AcmeClient {
 	// CSR
 	private OrderFinaliser orderFinaliser;
 	KeyPair certKeypair;
+	// Certificate
+	private CertificateDownloader certificateDownloader;
+	private String httpsRootDir;
+	private String certFilename;
+	private String keystoreFilename;
+	private String certKeystoreAlias;
 	// Logger
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AcmeClient");
 
@@ -78,18 +84,23 @@ public class AcmeClient {
 		this.http01RootDir = http01RootDir;
 	}
 	
-	public void setDns01RootDir(String dns01RootDir) {
+	public void setDns01FileInfo(String dns01RootDir, String dns01TxtRecordFileName) {
 		this.dns01RootDir = dns01RootDir;
-	}
-	
-	public void setDns01TxtRecordFileName(String dns01TxtRecordFileName) {
 		this.dns01TxtRecordFileName = dns01TxtRecordFileName;
 	}
 
+	public void setHttpsFileInfo(String httpsRootDir, String certFilename, 
+							String keystoreFilename, String certKeystoreAlias) {
+		this.httpsRootDir = httpsRootDir;
+		this.certFilename = certFilename;
+		this.keystoreFilename = keystoreFilename;
+		this.certKeystoreAlias = certKeystoreAlias;
+	}
+	
 	/**
 	 * Performs the whole pipeline
 	 */
-	public void fatica(ChallengeType challType, boolean revoke) throws Exception {
+	public void fatica(ChallengeType challType) throws Exception {
 		retrieveDirectory();
 		retrieveNonce();
 		createAccount();
@@ -103,6 +114,7 @@ public class AcmeClient {
 		respondToChallenges();
 		validateAuthorisationsAndOrder();
 		finaliseOrder();
+		downloadCertificate();
 	}
 
 	/**
@@ -251,7 +263,7 @@ public class AcmeClient {
 	}
 	
 	/**
-	 * Finalises the order and wiats for it to be VALID.
+	 * Finalises the order and waits for it to be VALID.
 	 */
 	private void finaliseOrder() throws Exception {
 		// Finalise order
@@ -264,6 +276,27 @@ public class AcmeClient {
 		nextNonce = orderFinaliser.getNextNonce();
 		
 		logger.info("Finalised order");
+		
+		return;
+	}
+	
+	/**
+	 * Downloads the certificate into the keystore file
+	 */
+	private void downloadCertificate() throws Exception {
+		// Download certificate
+		certificateDownloader = new CertificateDownloader(order.getString("certificate"), 
+															nextNonce, jwsParams);
+		certificateDownloader.setCertKeypair(certKeypair);
+		certificateDownloader.setHttpsRootDir(httpsRootDir);
+		certificateDownloader.setCertFilename(certFilename);
+		certificateDownloader.setKeystoreFilename(keystoreFilename);
+		certificateDownloader.setCertKeystoreAlias(certKeystoreAlias);
+		certificateDownloader.downloadCertificate();
+		
+		nextNonce = orderFinaliser.getNextNonce();
+		
+		logger.info("Downloaded certificate");
 		
 		return;
 	}
