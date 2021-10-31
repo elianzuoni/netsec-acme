@@ -258,7 +258,7 @@ public class AcmeClient {
 		orderFinaliser = new OrderFinaliser(order.getString("finalize"), orderUrl, nextNonce, jwsParams);
 		orderFinaliser.setDomains(domains);
 		orderFinaliser.setCertKeypair(certKeypair);
-		orderFinaliser.finaliseOrder();
+		orderFinaliser.finaliseAndValidateOrder();
 		
 		order = orderFinaliser.getNewOrder();
 		nextNonce = orderFinaliser.getNextNonce();

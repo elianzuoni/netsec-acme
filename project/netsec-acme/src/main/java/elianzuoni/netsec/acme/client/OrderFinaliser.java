@@ -21,6 +21,8 @@ import elianzuoni.netsec.acme.utils.HttpUtils;
 
 public class OrderFinaliser {
 	
+	private static final int MAX_VALIDATION_RETRIES = 10;
+	private static final int VALIDATION_SLEEP = 5000;
 	private String finaliseUrl;
 	private Collection<String> domains;
 	private String orderUrl;
@@ -55,15 +57,26 @@ public class OrderFinaliser {
 	String getNextNonce() {
 		return nextNonce;
 	}
+	
+	void finaliseAndValidateOrder() throws Exception {
+		finaliseOrder();
+		
+		// Shift back the nonce for the next request
+		nonce = nextNonce;
+		
+		newOrder = validateOrder();
+		
+		return;
+	}
 
 	/**
-	 * Finalises the order by sending the CSR, then waits for the order to be VALID
+	 * Finalises the order by sending the CSR
 	 */
-	void finaliseOrder() throws Exception {
-		// Connect to the newOrder endpoint of the ACME server
+	private void finaliseOrder() throws Exception {
+		// Connect to the finalise endpoint of the ACME server
 		logger.fine("Connecting to finalise endpoint at URL " + finaliseUrl);
 		String csr = Csr.generateCsr(certKeypair, domains);
-		HttpsURLConnection conn = AcmeUtils.sendRequest(finaliseUrl, nonce, jwsParams, buildReqBody(csr));
+		HttpsURLConnection conn = AcmeUtils.sendRequest(finaliseUrl, nonce, jwsParams, buildFinaliseReqBody(csr));
 
 		// Check the response code
 		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_OK);;
@@ -80,9 +93,49 @@ public class OrderFinaliser {
 	}
 	
 	/**
+	 * Validates the order by repeatedly sending POST-as-GET requests until it becomes VALID
+	 */
+	private JsonObject validateOrder() throws Exception {
+		JsonObject retrOrder = null;
+		boolean orderReady = false;
+
+		// Retry until this authorisation becomes VALID
+		for(int retry = 0; retry < MAX_VALIDATION_RETRIES; retry++) {
+			// First sleep a bit
+			logger.fine("Retry number " + retry + " for order URL: " + orderUrl +
+						". Going to first sleep for " + VALIDATION_SLEEP + " milliseconds");
+			Thread.sleep(VALIDATION_SLEEP);
+			
+			// Now send the request
+			logger.fine("Just woke up, going to retrieve the order");
+			retrOrder = retrieveOrder(orderUrl);
+			
+			// Shift back the nonce for the next request
+			nonce = nextNonce;
+			
+			// Check if the order is ready
+			if("valid".equals(retrOrder.getString("status"))) {
+				logger.fine("Order is valid");
+				orderReady = true;
+				break;
+			}
+			
+			logger.fine("Order is still not valid, retrying");
+		}
+		
+		// Return if ready, otherwise fail
+		if(!orderReady) {
+			throw new Exception("Order never transitioned to VALID");
+			
+		}
+		
+		return retrOrder;
+	}
+	
+	/**
 	 * Only builds the JWS body of the POST request
 	 */
-	private JsonObject buildReqBody(String csr) throws Exception {
+	private JsonObject buildFinaliseReqBody(String csr) throws Exception {
 		Jws body = new Jws();
 		
 		// Build JWS header
@@ -95,5 +148,27 @@ public class OrderFinaliser {
 		body.addPayloadEntry("csr", Json.createValue(csr));
 		
 		return body.finalise(jwsParams.accountKeypair.getPrivate(), jwsParams.signAlgoBCName);
+	}
+	
+	/**
+	 * Retrieves the order located at the specified URL
+	 */
+	private JsonObject retrieveOrder(String orderUrl) throws Exception {		
+		// Connect to the order endpoint of the ACME server
+		logger.fine("Connecting to order endpoint at URL " + orderUrl);
+		HttpsURLConnection conn = AcmeUtils.doPostAsGet(orderUrl, nonce, jwsParams);
+
+		// Check the response code
+		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_OK);
+		
+		// Get the order object
+		JsonObject retrOrder = Json.createReader(conn.getInputStream()).readObject();
+		logger.fine("Order object: " + retrOrder);
+		
+		// Get the next nonce
+		nextNonce = HttpUtils.getRequiredHeader(conn, "Replay-Nonce");
+		logger.fine("Next nonce: " + nextNonce);
+		
+		return retrOrder;
 	}
 }
