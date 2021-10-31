@@ -1,6 +1,5 @@
 /target/
-/src/main/resources/http01/
-/src/main/resources/dns01/
+/rtresources/
 .project
 .classpath
 *.class
