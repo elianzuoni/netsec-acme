@@ -64,7 +64,7 @@ class OrderPlacer {
 		// Check the response code
 		HttpUtils.checkResponseCode(conn, HttpURLConnection.HTTP_CREATED);
 		
-		// Get the account URL
+		// Get the order URL
 		orderUrl = HttpUtils.getRequiredHeader(conn, "Location");
 		logger.fine("Order URL: " + orderUrl);
 		

@@ -49,6 +49,9 @@ public class AcmeClient {
 	private Collection<String> challRespondUrls;
 	// Authorisations validation
 	private AuthAndOrderValidator authAndOrderValidator;
+	// CSR
+	private OrderFinaliser orderFinaliser;
+	KeyPair certKeypair;
 	// Logger
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AcmeClient");
 
@@ -62,7 +65,9 @@ public class AcmeClient {
 		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", "BC");
 		keyGen.initialize(new ECGenParameterSpec(EC_CURVE_NAME));
 		accountKeypair = keyGen.generateKeyPair();
-		logger.info("Generated public key:\n" + accountKeypair.getPublic());
+		logger.info("Generated account public key:\n" + accountKeypair.getPublic());
+		certKeypair = keyGen.generateKeyPair();
+		logger.info("Generated certificate public key:\n" + certKeypair.getPublic());
 		
 		// Set JWS parameters
 		jwsParams = new JwsParams(EC_SIGN_ALGO_BC_NAME, EC_SIGN_ALGO_ACME_NAME,
@@ -97,6 +102,7 @@ public class AcmeClient {
 		}
 		respondToChallenges();
 		validateAuthorisationsAndOrder();
+		finaliseOrder();
 	}
 
 	/**
@@ -240,6 +246,24 @@ public class AcmeClient {
 		
 		logger.info("Validated authorisations: " + authorisations);
 		logger.info("Readied order: " + order);
+		
+		return;
+	}
+	
+	/**
+	 * Finalises the order and wiats for it to be VALID.
+	 */
+	private void finaliseOrder() throws Exception {
+		// Finalise order
+		orderFinaliser = new OrderFinaliser(order.getString("finalize"), orderUrl, nextNonce, jwsParams);
+		orderFinaliser.setDomains(domains);
+		orderFinaliser.setCertKeypair(certKeypair);
+		orderFinaliser.finaliseOrder();
+		
+		order = orderFinaliser.getNewOrder();
+		nextNonce = orderFinaliser.getNextNonce();
+		
+		logger.info("Finalised order");
 		
 		return;
 	}
