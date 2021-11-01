@@ -47,53 +47,57 @@ public class App {
 		DNS_01,
 	}
 	
-	public static void main(String[] args) throws Exception {
-		// Parse command-line arguments
-		cli = CliParams.parse(args);
-				
-		setLoggerProperties();
-		setExecutor();
-		Security.addProvider(new BouncyCastleProvider());
+	public static void main(String[] args) {
+		try {
+			// Parse command-line arguments
+			cli = CliParams.parse(args);
+					
+			setLoggerProperties();
+			setExecutor();
+			Security.addProvider(new BouncyCastleProvider());
+			
+			// Set up all servers
+			setUpAndCreateHttp01();
+			setUpAndCreateDns();
+			setUpHttps();
+			logger.info("All servers set up");
+			
+			// Start all servers except HTTPS
+			http01Server.start(serversExecutor);
+			dnsServer.start(serversExecutor);
+			logger.info("All servers started except HTTPS and shutdown");
+			
+			// Set up client
+			acmeClient = new AcmeClient(cli.dir, cli.domains);
+			acmeClient.setHttp01RootDir(HTTP01_ROOT_DIR);
+			acmeClient.setDns01RootDir(DNS01_ROOT_DIR);
+			acmeClient.setHttpsFileInfo(HTTPS_ROOT_DIR, HTTPS_CERT_FILENAME, 
+										HTTPS_KEYSTORE_FILENAME, HTTPS_KEYSTORE_PASSWORD);
+			
+			// Operate client
+			acmeClient.fatica(cli.challType, cli.revoke);
+			
+			// Launch HTTPS server
+			createHttps();
+			certServer.start(serversExecutor);
+			logger.info("HTTPS server started");
+			
+			// Launch shutdown server
+			setUpAndCreateShutdown();
+			shutdownServer.start(serversExecutor);
+			logger.info("Shutdown server started");
+			
+			// Wait on shutdown semaphore
+			shutdownSemaphore.acquire();
+			
+			// Shut down
+			logger.info("Received shutdown command, closing in 5 seconds");
+			Thread.sleep(5000);
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 		
-		// Set up all servers
-		setUpAndCreateHttp01();
-		setUpAndCreateDns();
-		setUpHttps();
-		logger.info("All servers set up");
-		
-		// Start all servers except HTTPS
-		http01Server.start(serversExecutor);
-		dnsServer.start(serversExecutor);
-		logger.info("All servers started except HTTPS and shutdown");
-		
-		// Set up client
-		acmeClient = new AcmeClient(cli.dir, cli.domains);
-		acmeClient.setHttp01RootDir(HTTP01_ROOT_DIR);
-		acmeClient.setDns01RootDir(DNS01_ROOT_DIR);
-		acmeClient.setHttpsFileInfo(HTTPS_ROOT_DIR, HTTPS_CERT_FILENAME, 
-									HTTPS_KEYSTORE_FILENAME, HTTPS_KEYSTORE_PASSWORD);
-		
-		// Operate client
-		acmeClient.fatica(cli.challType, cli.revoke);
-		
-		// Launch HTTPS server
-		createHttps();
-		certServer.start(serversExecutor);
-		logger.info("HTTPS server started");
-		
-		// Launch shutdown server
-		setUpAndCreateShutdown();
-		shutdownServer.start(serversExecutor);
-		logger.info("Shutdown server started");
-		
-		// Wait on shutdown semaphore
-		shutdownSemaphore.acquire();
-		
-		// Shut down
-		logger.info("Received shutdown command, closing in 5 seconds");
-		Thread.sleep(5000);
-		
-		return;
+		System.exit(0);
 	}
 
 	private static void setLoggerProperties() throws Exception {
