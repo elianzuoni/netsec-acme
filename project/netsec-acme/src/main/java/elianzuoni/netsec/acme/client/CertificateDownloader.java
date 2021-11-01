@@ -29,7 +29,7 @@ public class CertificateDownloader {
 	
 	private String certUrl;
 	private KeyPair certKeypair;
-	private String certKeystoreAlias;
+	private String keystorePassword;
 	private String httpsRootDir;
 	private String keystoreFilename;
 	private String certFilename;
@@ -46,8 +46,8 @@ public class CertificateDownloader {
 		this.jwsParams = jwsParams;
 	}
 
-	void setCertKeystoreAlias(String certKeystoreAlias) {
-		this.certKeystoreAlias = certKeystoreAlias;
+	void setKeystorePassword(String certKeystoreAlias) {
+		this.keystorePassword = certKeystoreAlias;
 	}
 
 	void setKeystoreFilename(String keystoreFilename) {
@@ -118,7 +118,7 @@ public class CertificateDownloader {
 		// Create the keystore with the secret key and the public key cert
 	    KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
 	    keystore.load(null, null);
-	    keystore.setKeyEntry(certKeystoreAlias, certSecretKey, null, 
+	    keystore.setKeyEntry("any_alias", certSecretKey, null, 
 	    						certChain.toArray(new Certificate[0]));
 	    logger.fine("Created keystore");
 		
@@ -128,7 +128,7 @@ public class CertificateDownloader {
 
 	    // Store away the keystore
 	    FileOutputStream fos = new FileOutputStream(keystoreFilepath, false);
-	    keystore.store(fos, "barf".toCharArray());
+	    keystore.store(fos, keystorePassword.toCharArray());
 	    logger.fine("Stored away keystore");
 	    
 	    return;

@@ -57,7 +57,7 @@ public class AcmeClient {
 	private String httpsRootDir;
 	private String certFilename;
 	private String keystoreFilename;
-	private String certKeystoreAlias;
+	private String keystorePassword;
 	// Logger
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AcmeClient");
 
@@ -90,11 +90,11 @@ public class AcmeClient {
 	}
 
 	public void setHttpsFileInfo(String httpsRootDir, String certFilename, 
-							String keystoreFilename, String certKeystoreAlias) {
+							String keystoreFilename, String keystorePassword) {
 		this.httpsRootDir = httpsRootDir;
 		this.certFilename = certFilename;
 		this.keystoreFilename = keystoreFilename;
-		this.certKeystoreAlias = certKeystoreAlias;
+		this.keystorePassword = keystorePassword;
 	}
 	
 	/**
@@ -291,7 +291,7 @@ public class AcmeClient {
 		certificateDownloader.setHttpsRootDir(httpsRootDir);
 		certificateDownloader.setCertFilename(certFilename);
 		certificateDownloader.setKeystoreFilename(keystoreFilename);
-		certificateDownloader.setCertKeystoreAlias(certKeystoreAlias);
+		certificateDownloader.setKeystorePassword(keystorePassword);
 		certificateDownloader.downloadCertificate();
 		
 		nextNonce = orderFinaliser.getNextNonce();

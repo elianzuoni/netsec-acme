@@ -31,7 +31,7 @@ public class App {
 	private static final String HTTPS_ROOT_DIR = "rtresources/https/";
 	private static final String HTTPS_CERT_FILENAME = "cert_chain.pem";
 	private static final String HTTPS_KEYSTORE_FILENAME = "keystore.ks";
-	private static final String HTTPS_CERT_KEYSTORE_ALIAS = "berkila";
+	private static final String HTTPS_KEYSTORE_PASSWORD = "berkila";
 	private static CertServer certServer;
 	private static ShutdownServer shutdownServer;
 	private static final int SHUTDOWN_PORT = 5003;
@@ -70,7 +70,7 @@ public class App {
 		acmeClient.setHttp01RootDir(HTTP01_ROOT_DIR);
 		acmeClient.setDns01FileInfo(DNS01_ROOT_DIR, DNS01_TXT_RECORD_FILENAME);
 		acmeClient.setHttpsFileInfo(HTTPS_ROOT_DIR, HTTPS_CERT_FILENAME, 
-									HTTPS_KEYSTORE_FILENAME, HTTPS_CERT_KEYSTORE_ALIAS);
+									HTTPS_KEYSTORE_FILENAME, HTTPS_KEYSTORE_PASSWORD);
 		
 		// Operate client
 		acmeClient.fatica(cli.challType);
@@ -142,7 +142,7 @@ public class App {
 		// Create (and bind) the server
 		certServer = new CertServer(cli.ipAddrForAll, HTTPS_PORT, HTTPS_ROOT_DIR, 
 									HTTPS_CERT_FILENAME, HTTPS_KEYSTORE_FILENAME, 
-									HTTPS_CERT_KEYSTORE_ALIAS);
+									HTTPS_KEYSTORE_PASSWORD);
 		logger.fine("Created https server and bound to port " + HTTPS_PORT);
 	}
 	

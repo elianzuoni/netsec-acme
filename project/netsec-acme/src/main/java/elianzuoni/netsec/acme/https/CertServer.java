@@ -22,11 +22,11 @@ public class CertServer {
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.https.CertServer");
 
 	public CertServer(String addr, int tcpPort, String rootDir, String certFilename, 
-						String keystoreFilename, String keyAlias) throws Exception {
+						String keystoreFilename, String keystorePassword) throws Exception {
 		super();
 		
 		this.httpsServer = HttpsServer.create(new InetSocketAddress(addr, tcpPort), 0);
-		configureHttps(rootDir + keystoreFilename, keyAlias);
+		configureHttps(rootDir + keystoreFilename, keystorePassword);
 		this.httpsServer.createContext("/", new RequestHandler(rootDir, certFilename));
 		
 		logger.info("Server created and bound to port " + tcpPort + ", rooted on directory " + rootDir);
@@ -41,13 +41,13 @@ public class CertServer {
 		return;
 	}
 	
-	private void configureHttps(String keystoreFilepath, String keyAlias) throws Exception {
+	private void configureHttps(String keystoreFilepath, String keystorePassword) throws Exception {
 		SSLContext sslCtx = SSLContext.getInstance("TLS");
 		
 		// Load keystore
 		logger.fine("Loading keystore " + keystoreFilepath);
         KeyStore keyStore = KeyStore.getInstance("JKS");
-        keyStore.load(new FileInputStream(keystoreFilepath), "barf".toCharArray());
+        keyStore.load(new FileInputStream(keystoreFilepath), keystorePassword.toCharArray());
 		
 		// Create key manager
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
