@@ -18,7 +18,7 @@ import elianzuoni.netsec.acme.utils.HttpUtils;
 class AuthAndOrderValidator {
 	
 	private static final int MAX_VALIDATION_RETRIES = 10;
-	private static final int VALIDATION_SLEEP = 5000;
+	private static final int VALIDATION_SLEEP = 2000;
 	private String orderUrl;
 	private JsonObject order;
 	private String nonce;

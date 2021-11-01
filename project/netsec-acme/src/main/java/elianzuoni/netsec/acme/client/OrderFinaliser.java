@@ -22,7 +22,7 @@ import elianzuoni.netsec.acme.utils.HttpUtils;
 public class OrderFinaliser {
 	
 	private static final int MAX_VALIDATION_RETRIES = 10;
-	private static final int VALIDATION_SLEEP = 5000;
+	private static final int VALIDATION_SLEEP = 2000;
 	private String finaliseUrl;
 	private Collection<String> domains;
 	private String orderUrl;

@@ -6,14 +6,14 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateFactory;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -106,14 +106,14 @@ public class CertificateDownloader {
 	private void storeKeystore(byte[] certBytes, PrivateKey certSecretKey) throws Exception {
 		// Parse certificate chain
 		PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(certBytes)));
-		Collection<Certificate> certChain = new LinkedList<Certificate>();
+		List<Certificate> certChain = new LinkedList<Certificate>();
 		X509CertificateHolder certHolder;
 		while((certHolder = (X509CertificateHolder)pemParser.readObject()) != null) {
 			X509Certificate cert = (X509Certificate) CertificateFactory.getInstance("X.509")
 				          .generateCertificate(new ByteArrayInputStream(certHolder.getEncoded()));
 			certChain.add(cert);
 		}
-		logger.fine("Parsed certificate chain:\n" + certChain);
+		logger.fine("Parsed certificate chain of length " + certChain.size() + ":\n" + certChain);
 
 		// Create the keystore with the secret key and the public key cert
 	    KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -128,7 +128,7 @@ public class CertificateDownloader {
 
 	    // Store away the keystore
 	    FileOutputStream fos = new FileOutputStream(keystoreFilepath, false);
-	    keystore.store(fos, null);
+	    keystore.store(fos, "barf".toCharArray());
 	    logger.fine("Stored away keystore");
 	    
 	    return;
