@@ -3,9 +3,10 @@ package elianzuoni.netsec.acme.app;
 import java.io.File;
 import java.security.Security;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadFactory;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -35,7 +36,7 @@ public class App {
 	private static ShutdownServer shutdownServer;
 	private static final int SHUTDOWN_PORT = 5003;
 	private static final int MAX_SERVERS_THREADS = 10;
-	private static ExecutorService serversExecutor = Executors.newFixedThreadPool(MAX_SERVERS_THREADS);
+	private static Executor serversExecutor;
 	private static AcmeClient acmeClient;
 	private static Semaphore shutdownSemaphore = new Semaphore(0);
 	private static Logger logger = Logger.getLogger("elianzuoni.netsec.acme.app.App");
@@ -51,6 +52,7 @@ public class App {
 		cli = CliParams.parse(args);
 				
 		setLoggerProperties();
+		setExecutor();
 		Security.addProvider(new BouncyCastleProvider());
 		
 		// Set up all servers
@@ -90,7 +92,6 @@ public class App {
 		// Shut down
 		logger.info("Received shutdown command, closing in 5 seconds");
 		Thread.sleep(5000);
-		System.exit(0);
 		
 		return;
 	}
@@ -99,6 +100,18 @@ public class App {
 		Locale.setDefault(Locale.ENGLISH);
 		LogManager.getLogManager().
 			readConfiguration(App.class.getResourceAsStream("/logging/logging.properties"));
+	}
+	
+	private static void setExecutor() {
+		// Create a fixed pool of daemon threads
+		serversExecutor = Executors.newFixedThreadPool(MAX_SERVERS_THREADS,
+        new ThreadFactory() {
+            public Thread newThread(Runnable r) {
+                Thread t = Executors.defaultThreadFactory().newThread(r);
+                t.setDaemon(true);
+                return t;
+            }
+        });
 	}
 	
 	private static void setUpAndCreateHttp01() throws Exception {
