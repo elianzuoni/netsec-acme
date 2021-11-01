@@ -136,7 +136,7 @@ public class App {
 	
 	private static void createHttps() throws Exception {
 		// Create (and bind) the server
-		certServer = new CertServer("0.0.0.0", HTTPS_PORT, HTTPS_ROOT_DIR, 
+		certServer = new CertServer(cli.ipAddrForAll, HTTPS_PORT, HTTPS_ROOT_DIR, 
 									HTTPS_CERT_FILENAME, HTTPS_KEYSTORE_FILENAME, 
 									HTTPS_CERT_KEYSTORE_ALIAS);
 		logger.fine("Created https server and bound to port " + HTTPS_PORT);

@@ -31,6 +31,8 @@ class RequestHandler implements HttpHandler {
 		byte[] cert;
 		OutputStream responseStream;
 		
+		logger.info("Handling new exchange");
+		
 		// We only accept GET requests on this endpoint
 		if(!"GET".equals(method)) {
 			logger.severe("Invalid method: " + method);
@@ -52,7 +54,8 @@ class RequestHandler implements HttpHandler {
 		// Set content type as application/pem-certificate-chain
 		Headers responseHeaders = exchange.getResponseHeaders();
 		responseHeaders.add("Content-Type", "application/pem-certificate-chain");
-		// Write challenge onto response (with code "200: OK")
+		
+		// Write cert onto response (with code "200: OK")
 		exchange.sendResponseHeaders(200, cert.length);
 		responseStream = exchange.getResponseBody();
 		responseStream.write(cert);
