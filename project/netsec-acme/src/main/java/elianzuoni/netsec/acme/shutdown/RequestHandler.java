@@ -11,7 +11,7 @@ import com.sun.net.httpserver.HttpHandler;
 class RequestHandler implements HttpHandler {
 	
 	private Semaphore shutdownSemaphore;
-	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.http01.RequestHandler");
+	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.shutdown.RequestHandler");
 
 	RequestHandler(Semaphore shutdownSemaphore) {
 		super();
