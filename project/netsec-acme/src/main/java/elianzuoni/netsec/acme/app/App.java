@@ -38,7 +38,7 @@ public class App {
 	private static final int MAX_SERVERS_THREADS = 10;
 	private static ExecutorService serversExecutor = Executors.newFixedThreadPool(MAX_SERVERS_THREADS);
 	private static AcmeClient acmeClient;
-	private static Semaphore shutdownSemaphore = new Semaphore(0);
+	private static Semaphore shutdownSemaphore = new Semaphore(-1);
 	private static Logger logger = Logger.getLogger("elianzuoni.netsec.acme.app.App");
 
 	
