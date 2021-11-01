@@ -1,9 +1,11 @@
 package elianzuoni.netsec.acme.dns;
 
+import java.net.InetAddress;
 import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.xbill.DNS.ARecord;
 import org.xbill.DNS.DClass;
 import org.xbill.DNS.Name;
 import org.xbill.DNS.Record;
@@ -25,8 +27,12 @@ class AQueryHandler implements UnaryOperator<Record> {
 	public Record apply(Record question) {
 		logger.info("Got Query:\n" + question + "\nAnswering with address " + ipAddrForAll);
 		try {
+			return new ARecord(question.getName(), DClass.IN, DEFAULT_RECORD_TTL, 
+								InetAddress.getByName(ipAddrForAll));
+			/*
 			return Record.fromString(Name.root, Type.A, DClass.IN, DEFAULT_RECORD_TTL,
 									ipAddrForAll, Name.root);
+			*/
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Received exception when building answer Record", e);
 		}
