@@ -7,6 +7,7 @@ import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.xbill.DNS.Flags;
 import org.xbill.DNS.Message;
 import org.xbill.DNS.Record;
 import org.xbill.DNS.Section;
@@ -92,6 +93,10 @@ public class NameServer {
 		Record answerRecord;
 		
 		logger.info("Processing request with ID: " + request.getHeader().getID());
+		
+		// Set flags in response
+		response.getHeader().setFlag(Flags.AA);
+	    response.getHeader().setFlag(Flags.QR);
 		
 		// Repeat the question in the response
 		questionRecord = request.getQuestion();
