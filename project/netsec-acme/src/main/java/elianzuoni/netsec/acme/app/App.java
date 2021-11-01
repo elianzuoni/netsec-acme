@@ -38,7 +38,7 @@ public class App {
 	private static final int MAX_SERVERS_THREADS = 10;
 	private static ExecutorService serversExecutor = Executors.newFixedThreadPool(MAX_SERVERS_THREADS);
 	private static AcmeClient acmeClient;
-	private static Semaphore shutdownSemaphore = new Semaphore(-1);
+	private static Semaphore shutdownSemaphore = new Semaphore(0);
 	private static Logger logger = Logger.getLogger("elianzuoni.netsec.acme.app.App");
 
 	
@@ -86,7 +86,8 @@ public class App {
 		shutdownSemaphore.acquire();
 		
 		// Shut down
-		logger.info("Received shutdown command, closing");
+		logger.info("Received shutdown command, closing in 5 seconds");
+		Thread.sleep(5000);
 		System.exit(0);
 		
 		return;
