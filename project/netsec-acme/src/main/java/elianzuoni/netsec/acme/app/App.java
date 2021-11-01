@@ -73,7 +73,7 @@ public class App {
 									HTTPS_KEYSTORE_FILENAME, HTTPS_KEYSTORE_PASSWORD);
 		
 		// Operate client
-		acmeClient.fatica(cli.challType);
+		acmeClient.fatica(cli.challType, cli.revoke);
 		
 		// Launch HTTPS server
 		createHttps();

@@ -52,12 +52,14 @@ public class AcmeClient {
 	// CSR
 	private OrderFinaliser orderFinaliser;
 	KeyPair certKeypair;
-	// Certificate
+	// Certificate download
 	private CertificateDownloader certificateDownloader;
 	private String httpsRootDir;
 	private String certFilename;
 	private String keystoreFilename;
 	private String keystorePassword;
+	// Certificate revocation
+	private CertificateRevoker certRevoker;
 	// Logger
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.AcmeClient");
 
@@ -100,7 +102,7 @@ public class AcmeClient {
 	/**
 	 * Performs the whole pipeline
 	 */
-	public void fatica(ChallengeType challType) throws Exception {
+	public void fatica(ChallengeType challType, boolean revoke) throws Exception {
 		retrieveDirectory();
 		retrieveNonce();
 		createAccount();
@@ -115,6 +117,9 @@ public class AcmeClient {
 		validateAuthorisationsAndOrder();
 		finaliseOrder();
 		downloadCertificate();
+		if(revoke) {
+			revokeCertificate();
+		}
 	}
 
 	/**
@@ -294,9 +299,26 @@ public class AcmeClient {
 		certificateDownloader.setKeystorePassword(keystorePassword);
 		certificateDownloader.downloadCertificate();
 		
-		nextNonce = orderFinaliser.getNextNonce();
+		nextNonce = certificateDownloader.getNextNonce();
 		
 		logger.info("Downloaded certificate");
+		
+		return;
+	}
+	
+	/**
+	 * Revokes the certificate
+	 */
+	private void revokeCertificate() throws Exception {
+		// Revoke certificate
+		certRevoker = new CertificateRevoker(directory.getString("revokeCert"), 
+															nextNonce, jwsParams);
+		certRevoker.setKeystoreInfo(httpsRootDir + keystoreFilename, keystorePassword);
+		certRevoker.revokeCertificate();
+		
+		nextNonce = certRevoker.getNextNonce();
+		
+		logger.info("Revoked certificate");
 		
 		return;
 	}
