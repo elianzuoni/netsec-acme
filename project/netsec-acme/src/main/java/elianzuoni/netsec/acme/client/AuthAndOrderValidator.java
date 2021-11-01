@@ -104,8 +104,7 @@ class AuthAndOrderValidator {
 		
 		// Return if valid, otherwise fail
 		if(!authValid) {
-			throw new Exception("Authorisation " + auth.getString("url") + 
-								" never transitioned to VALID");
+			throw new Exception("Authorisation never transitioned to VALID");
 			
 		}
 		

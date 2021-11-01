@@ -24,7 +24,6 @@ class Dns01ChallExecutor {
 	private Collection<JsonObject> authorisations;
 	private JwsParams jwsParams;
 	private String dns01RootDir;
-	private String txtRecordFileName;
 	private Collection<String> respondUrls;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.client.Dns01ChallExecutor");
 	
@@ -43,10 +42,6 @@ class Dns01ChallExecutor {
 
 	void setDns01RootDir(String dns01RootDir) {
 		this.dns01RootDir = dns01RootDir;
-	}
-
-	void setTxtRecordFileName(String txtRecordFileName) {
-		this.txtRecordFileName = txtRecordFileName;
 	}
 
 	/**
@@ -108,7 +103,7 @@ class Dns01ChallExecutor {
 		
 		// Construct file path
 		String challengeDir = dns01RootDir + reversedIdentifier + DNS01_CHALL_DIR;
-		String challengeFilePath = challengeDir + txtRecordFileName;
+		String challengeFilePath = challengeDir + chall.getString("token");
 		
 		logger.info("Writing file: " + challengeFilePath);
 		

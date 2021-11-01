@@ -2,8 +2,8 @@ package elianzuoni.netsec.acme.dns;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.util.Collection;
 import java.util.concurrent.Executor;
-import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,13 +23,12 @@ public class NameServer {
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.dns.NameServer");
 	
 	
-	public NameServer(int port, String ipAddrForAll, String dns01RootDir, 
-						String dns01TxtRecordFilename) {
+	public NameServer(int port, String ipAddrForAll, String dns01RootDir) {
 		super();
 		this.port = port;
 		
 		aQueryHandler = new AQueryHandler(ipAddrForAll);
-		txtQueryHandler = new TxtQueryHandler(dns01RootDir, dns01TxtRecordFilename);
+		txtQueryHandler = new TxtQueryHandler(dns01RootDir);
 	}
 	
 	/**
@@ -90,7 +89,6 @@ public class NameServer {
 		Message request = new Message(rawInPkt);
 		Record questionRecord;
 		Message response = new Message(request.getHeader().getID());
-		Record answerRecord;
 		
 		logger.info("Processing request with ID: " + request.getHeader().getID());
 		
@@ -104,33 +102,35 @@ public class NameServer {
 		
 		// Select the right handler, based on the request Record Type
 		logger.fine("Selecting the handler for record:\n" + questionRecord);
-		UnaryOperator<Record> handler;
 		switch(questionRecord.getType()) 
 		{
 		case Type.A:
 		case Type.AAAA:
 			logger.info("Handling an A or AAAA query");
-			handler = aQueryHandler;
+			
+			// Get answer record
+			Record answerRecord = aQueryHandler.getAnswer(questionRecord);
+			// Add it to the response
+			response.addRecord(answerRecord, Section.ANSWER);
+			
 			break;
 			
 		case Type.TXT:
 			logger.info("Handling a TXT Query");
-			handler = txtQueryHandler;
+			
+			// Get answer records
+			Collection<Record> answerRecords = txtQueryHandler.getAnswers(questionRecord);
+			// Add them to the response
+			for(Record record : answerRecords) {
+				response.addRecord(record, Section.ANSWER);
+			}
+			
 			break;
 			
 		default:
 			logger.warning("Handling an unknown-type Query: " + questionRecord.getType());
-			handler = ((message) -> {
-				return null;
-			});
-			break;
+			return null;
 		}
-		
-		// Obtain the answer record
-		answerRecord = handler.apply(questionRecord);
-		
-		// Add it to the response
-		response.addRecord(answerRecord, Section.ANSWER);
 		
 		logger.info("Query handled");
 		

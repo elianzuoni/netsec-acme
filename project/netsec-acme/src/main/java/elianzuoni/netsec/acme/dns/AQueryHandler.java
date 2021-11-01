@@ -1,17 +1,14 @@
 package elianzuoni.netsec.acme.dns;
 
 import java.net.InetAddress;
-import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.xbill.DNS.ARecord;
 import org.xbill.DNS.DClass;
-import org.xbill.DNS.Name;
 import org.xbill.DNS.Record;
-import org.xbill.DNS.Type;
 
-class AQueryHandler implements UnaryOperator<Record> {
+class AQueryHandler {
 	
 	private static final int DEFAULT_RECORD_TTL = 86400;
 	private final String ipAddrForAll;
@@ -23,8 +20,7 @@ class AQueryHandler implements UnaryOperator<Record> {
 		this.ipAddrForAll = ipAddrForAll;
 	}
 
-	@Override
-	public Record apply(Record question) {
+	public ARecord getAnswer(Record question) {
 		logger.info("Got Query:\n" + question + "\nAnswering with address " + ipAddrForAll);
 		try {
 			return new ARecord(question.getName(), DClass.IN, DEFAULT_RECORD_TTL, 

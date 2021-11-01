@@ -43,7 +43,6 @@ public class AcmeClient {
 	// DNS-01
 	private Dns01ChallExecutor dns01ChallExecutor;
 	private String dns01RootDir;
-	private String dns01TxtRecordFileName;
 	// Challenge responding
 	private ChallResponder challResponder;
 	private Collection<String> challRespondUrls;
@@ -86,9 +85,8 @@ public class AcmeClient {
 		this.http01RootDir = http01RootDir;
 	}
 	
-	public void setDns01FileInfo(String dns01RootDir, String dns01TxtRecordFileName) {
+	public void setDns01RootDir(String dns01RootDir) {
 		this.dns01RootDir = dns01RootDir;
-		this.dns01TxtRecordFileName = dns01TxtRecordFileName;
 	}
 
 	public void setHttpsFileInfo(String httpsRootDir, String certFilename, 
@@ -227,7 +225,6 @@ public class AcmeClient {
 		// Execute authorisations
 		dns01ChallExecutor = new Dns01ChallExecutor(authorisations, jwsParams);
 		dns01ChallExecutor.setDns01RootDir(dns01RootDir);
-		dns01ChallExecutor.setTxtRecordFileName(dns01TxtRecordFileName);
 		dns01ChallExecutor.executeAllDns01Challenges();
 		
 		challRespondUrls = dns01ChallExecutor.getRespondUrls();

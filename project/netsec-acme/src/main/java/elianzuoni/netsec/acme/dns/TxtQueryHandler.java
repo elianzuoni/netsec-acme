@@ -1,10 +1,11 @@
 package elianzuoni.netsec.acme.dns;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.function.UnaryOperator;
-import java.util.logging.Level;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.logging.Logger;
 
 import org.xbill.DNS.DClass;
@@ -14,41 +15,43 @@ import org.xbill.DNS.Type;
 
 import elianzuoni.netsec.acme.utils.UrlUtils;
 
-class TxtQueryHandler implements UnaryOperator<Record> {
-
+class TxtQueryHandler {
 	private static final int DEFAULT_RECORD_TTL = 86400;
 	private final String dns01RootDir;
-	private final String txtRecordFileName;
 	private Logger logger = Logger.getLogger("elianzuoni.netsec.acme.dns.TxtQueryHandler");
 	
-	TxtQueryHandler(String dns01RootDir, String txtRecordFileName) {
+	TxtQueryHandler(String dns01RootDir) {
 		super();
 		this.dns01RootDir = dns01RootDir;
-		this.txtRecordFileName = txtRecordFileName;
 	}
 
-	@Override
-	public Record apply(Record question) {
+	public Collection<Record> getAnswers(Record question) throws Exception {
+		Collection<Record> answers = new LinkedList<>();
+		
 		logger.info("Got Query:\n" + question);
 		
-		// Construct challenge path
+		// Construct challenges directory
 		String identifier = question.getName().toString();
 		String reversedIdentifier = UrlUtils.reverseUrlToPath(identifier);
-		String challengePath = dns01RootDir + reversedIdentifier + txtRecordFileName;
-		logger.fine("Challenge path: " + challengePath);
+		String challengesDir = dns01RootDir + reversedIdentifier;
+		logger.fine("Challenges directory: " + challengesDir);
 		
-		// Read challenge from file
-		try {
-			byte challengeBytes[] = Files.readAllBytes(Paths.get(challengePath));
+		// List all files
+		for(String filename : new File(challengesDir).list()) {
+			// List might include directories
+			if(!(new File(challengesDir + filename).isFile())) {
+				continue;
+			}
+			
+			// Read file
+			String challengeFilepath = challengesDir + filename;
+			byte challengeBytes[] = Files.readAllBytes(Paths.get(challengeFilepath));
 			String challenge = new String(challengeBytes, StandardCharsets.UTF_8);
-			return Record.fromString(Name.root, Type.TXT, DClass.IN, DEFAULT_RECORD_TTL,
-					challenge, Name.root);
-		}
-		catch(Exception e) {
-			logger.log(Level.SEVERE, "Caught exception reading file: ", e);
+			answers.add(Record.fromString(Name.root, Type.TXT, DClass.IN, DEFAULT_RECORD_TTL,
+											challenge, Name.root));
 		}
 		
-		return null;
+		return answers;
 	}
 
 }

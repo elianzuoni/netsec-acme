@@ -26,7 +26,6 @@ public class App {
 	private static NameServer dnsServer;
 	private static final int DNS_PORT = 10053;
 	private static final String DNS01_ROOT_DIR = "rtresources/dns01/";
-	private static final String DNS01_TXT_RECORD_FILENAME = "txt_record";
 	private static final int HTTPS_PORT = 5001;
 	private static final String HTTPS_ROOT_DIR = "rtresources/https/";
 	private static final String HTTPS_CERT_FILENAME = "cert_chain.pem";
@@ -68,7 +67,7 @@ public class App {
 		// Set up client
 		acmeClient = new AcmeClient(cli.dir, cli.domains);
 		acmeClient.setHttp01RootDir(HTTP01_ROOT_DIR);
-		acmeClient.setDns01FileInfo(DNS01_ROOT_DIR, DNS01_TXT_RECORD_FILENAME);
+		acmeClient.setDns01RootDir(DNS01_ROOT_DIR);
 		acmeClient.setHttpsFileInfo(HTTPS_ROOT_DIR, HTTPS_CERT_FILENAME, 
 									HTTPS_KEYSTORE_FILENAME, HTTPS_KEYSTORE_PASSWORD);
 		
@@ -122,8 +121,7 @@ public class App {
 		}
 		
 		// Create (and bind) the server
-		dnsServer = new NameServer(DNS_PORT, cli.ipAddrForAll, DNS01_ROOT_DIR, 
-									DNS01_TXT_RECORD_FILENAME);
+		dnsServer = new NameServer(DNS_PORT, cli.ipAddrForAll, DNS01_ROOT_DIR);
 		logger.fine("Created dns01 server and bound to port " + DNS_PORT);
 		
 		return;
