@@ -58,14 +58,12 @@ public class App {
 		setUpAndCreateHttp01();
 		setUpAndCreateDns();
 		setUpHttps();
-		setUpAndCreateShutdown();
 		logger.info("All servers set up");
 		
 		// Start all servers except HTTPS
 		http01Server.start(serversExecutor);
 		dnsServer.start(serversExecutor);
-		shutdownServer.start(serversExecutor);
-		logger.info("All servers started except HTTPS");
+		logger.info("All servers started except HTTPS and shutdown");
 		
 		// Set up client
 		acmeClient = new AcmeClient(cli.dir, cli.domains);
@@ -81,6 +79,11 @@ public class App {
 		createHttps();
 		certServer.start(serversExecutor);
 		logger.info("HTTPS server started");
+		
+		// Launch shutdown server
+		setUpAndCreateShutdown();
+		shutdownServer.start(serversExecutor);
+		logger.info("Shutdown server started");
 		
 		// Wait on shutdown semaphore
 		shutdownSemaphore.acquire();
